@@ -1,0 +1,3722 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f3f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Thermcon">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Thermcon</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f3f3f0;
+  --surface: #fcfcfb;
+  --surface-2: #ebeae6;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.09);
+  --border-strong: rgba(11, 11, 11, 0.18);
+  --accent: #2a78d6;
+  --accent-soft: rgba(42, 120, 214, 0.12);
+  --button: #2a78d6;
+  --temp: #eb6834;
+  --temp-rgb: 235, 104, 52;
+  --hum: #2a78d6;
+  --heat-ink: #b4471a;
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --warning: #fab219;
+  --warning-ink: #7a4f00;
+  --critical: #d03b3b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #262624;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --accent: #3987e5;
+    --accent-soft: rgba(57, 135, 229, 0.16);
+    --button: #256abf;
+    --temp: #d95926;
+    --temp-rgb: 217, 89, 38;
+    --hum: #3987e5;
+    --heat-ink: #f2884f;
+    --good-ink: #0ca30c;
+    --warning-ink: #fab219;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+/* The page never zooms: no double-tap or pinch zoom (pan-x pan-y), with
+ * manipulation as the fallback where that is not understood. Quick taps on
+ * − / + must not select the value either. */
+* { touch-action: manipulation; touch-action: pan-x pan-y; }
+.setpoint, .stepper, .temp-step { -webkit-user-select: none; user-select: none; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+main { max-width: 600px; margin: 0 auto; padding: 14px 16px 48px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+html { -webkit-tap-highlight-color: transparent; }
+button, label, .tabs, .subtabs, .appbar { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+button:active:not(:disabled) { opacity: 0.7; }
+a { color: var(--accent); text-decoration: none; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* app bar and tabs */
+.appbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+.brand .icon { width: 22px; height: 22px; color: var(--temp); }
+.appbar-end { display: flex; align-items: center; gap: 4px; }
+.back-btn { margin-left: -10px; color: var(--ink); }
+.back-btn .icon { width: 22px; height: 22px; color: var(--ink); }
+.gear { position: relative; margin-right: -8px; color: var(--ink-2); }
+.gear .icon { width: 21px; height: 21px; }
+.gear .dot { position: absolute; top: 8px; right: 7px; box-shadow: 0 0 0 2px var(--page); }
+.reboot .icon { width: 20px; height: 20px; }
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; margin-bottom: 16px; background: var(--surface-2); border-radius: 12px; }
+.tabs button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 4px; font-size: 14px; font-weight: 500; color: var(--ink-2); background: transparent; border: 0; border-radius: 9px; }
+.tabs button .icon { width: 16px; height: 16px; }
+.tabs button[aria-selected="true"] { color: var(--ink); background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border); }
+.subtabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin: -4px 0 14px; border-bottom: 1px solid var(--border); }
+.subtabs button { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 2px 11px; font-size: 14px; font-weight: 500; color: var(--ink-2); background: none; border: 0; }
+.subtabs button:hover { color: var(--ink); }
+.subtabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.subtabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--accent); }
+.dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--warning); }
+
+/* building blocks */
+.stack > * + * { margin-top: 12px; }
+.card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.card-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+.card-title .icon { color: var(--ink-2); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; border-radius: 999px; color: var(--ink-2); background: var(--surface-2); }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.ok { color: var(--good-ink); background: rgba(12, 163, 12, 0.12); }
+.badge.warn { color: var(--warning-ink); background: rgba(250, 178, 25, 0.18); }
+.badge.crit { color: var(--critical); background: rgba(208, 59, 59, 0.12); }
+.badge.info { color: var(--accent); background: var(--accent-soft); }
+.badge.heat { color: var(--heat-ink); background: rgba(var(--temp-rgb), 0.14); }
+.badge.off { color: var(--muted); }
+.kv { margin: 0; }
+.kv div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.kv div:first-child { border-top: 0; padding-top: 0; }
+.kv dt { color: var(--ink-2); }
+.kv dd { margin: 0; font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+.banner { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; font-size: 14px; border: 1px solid; border-radius: 10px; }
+.banner .icon { width: 17px; height: 17px; margin-top: 1px; }
+.banner.ok { background: rgba(12, 163, 12, 0.08); border-color: rgba(12, 163, 12, 0.35); }
+.banner.ok .icon { color: var(--good); }
+.banner.warn { background: rgba(250, 178, 25, 0.12); border-color: rgba(250, 178, 25, 0.5); }
+.banner.warn .icon { color: var(--warning-ink); }
+.banner.crit { background: rgba(208, 59, 59, 0.08); border-color: rgba(208, 59, 59, 0.35); }
+.banner.crit .icon { color: var(--critical); }
+.banner.busy { background: var(--accent-soft); border-color: rgba(42, 120, 214, 0.35); }
+.banner.busy .icon { color: var(--accent); animation: spin 0.9s linear infinite; }
+/* Notices about the device itself, at the bottom over every page. */
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: min(440px, calc(100% - 32px)); transform: translateX(-50%); background: var(--surface); border-radius: 10px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18); }
+.toast:empty { display: none; }
+.banner a { font-weight: 600; white-space: nowrap; }
+.sep { height: 1px; margin: 18px 0; background: var(--border); }
+.btn-block { width: 100%; }
+.remote .local-only, body:not(.remote) .remote-only { display: none !important; }
+.login { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--page); }
+.login[hidden] { display: none; }
+.login-card { width: min(400px, 100%); }
+.login-card .brand { margin-bottom: 8px; }
+#login-fields { margin-top: 14px; }
+.progress { height: 8px; overflow: hidden; background: var(--surface-2); border-radius: 4px; }
+.progress > div { width: 0; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.25s; }
+.progress.indeterminate > div { width: 35%; animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+.progress-row { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+.fw-progress { margin-top: 14px; }
+.muted { color: var(--muted); }
+
+/* controls */
+.segmented { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; background: var(--surface-2); border-radius: 10px; }
+.segmented button { position: relative; padding: 6px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; color: var(--ink-2); background: transparent; border: 0; border-radius: 8px; }
+.segmented button[aria-pressed="true"] { color: var(--ink); background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--border); }
+.segmented.block { display: grid; width: 100%; }
+.segmented.block button { padding: 9px 4px; font-size: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; font-size: 15px; font-weight: 600; border-radius: 10px; border: 1px solid transparent; }
+.btn-primary { color: #fff; background: var(--button); }
+.btn-secondary { color: var(--ink); background: var(--surface); border-color: var(--border-strong); }
+.btn-sm { height: 36px; padding: 0 12px; font-size: 14px; }
+.btn-sm .icon { width: 16px; height: 16px; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.actions { display: flex; gap: 10px; margin-top: 18px; }
+.actions .btn { flex: 1; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; padding: 0; color: var(--ink-2); background: transparent; border: 0; border-radius: 10px; }
+.icon-btn:hover:not(:disabled) { background: var(--surface-2); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.round-btn { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 52px; height: 52px; padding: 0; color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 50%; }
+.round-btn .icon { width: 22px; height: 22px; }
+.round-btn:active:not(:disabled) { background: var(--surface-2); }
+.round-btn:disabled { opacity: 0.35; cursor: default; }
+.round-btn.small { width: 40px; height: 40px; }
+.round-btn.small .icon { width: 18px; height: 18px; }
+.spin .icon { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.field + .field { margin-top: 14px; }
+.field > label, .field .label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+/* 16px at least: iPhones zoom into smaller fields when they get focus. */
+.input { width: 100%; height: 44px; padding: 0 12px; font-size: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23898781' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 18px; }
+.input-row { display: flex; gap: 6px; }
+.input-row .input { flex: 1; min-width: 0; }
+.input-wrap { position: relative; }
+.input-wrap .input { padding-right: 46px; }
+.input-wrap .icon-btn { position: absolute; top: 2px; right: 2px; }
+.help { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.switch-row .label { margin: 0; color: var(--ink); font-size: 14px; }
+.switch { position: relative; flex: none; width: 44px; height: 26px; margin: 0; appearance: none; -webkit-appearance: none; background: var(--axis); border-radius: 999px; transition: background 0.2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(18px); }
+#ap-confirm, #ap-msg { margin-top: 12px; }
+#cloud-error:not(:empty) { margin-top: 12px; }
+
+/* thermostat */
+.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.metric-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.key { width: 14px; height: 2px; border-radius: 1px; flex: none; }
+.key.dash { height: 0; background: none; border-top: 2px dashed var(--ink-2); }
+.key.band { height: 8px; border-radius: 2px; }
+.hero-value { margin-top: 4px; font-size: 56px; font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; }
+.hero-value .unit { margin-left: 4px; font-size: 22px; font-weight: 500; letter-spacing: 0; color: var(--ink-2); }
+.side { text-align: right; }
+.side .metric-label { justify-content: flex-end; }
+.side-value { margin-top: 4px; font-size: 32px; font-weight: 600; line-height: 1.1; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+.meta-items { display: flex; gap: 14px; }
+.meta-item { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
+.meta-item .icon { width: 16px; height: 16px; color: var(--muted); }
+.setpoint { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sp-center { min-width: 0; text-align: center; }
+.sp-value { font-size: 44px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sp-value .unit { margin-left: 3px; font-size: 20px; font-weight: 500; letter-spacing: 0; color: var(--ink-2); }
+.sp-value.off { font-size: 30px; line-height: 1.6; color: var(--muted); }
+.sp-value.pending { color: var(--accent); }
+.sp-value.pending .unit { color: var(--accent); }
+.sp-label { margin-top: 2px; font-size: 13px; color: var(--ink-2); }
+.sp-info { min-height: 20px; margin: 12px 0 0; font-size: 13.5px; text-align: center; color: var(--ink-2); }
+.stepper { display: flex; align-items: center; gap: 14px; }
+.stepper-value { min-width: 76px; font-size: 22px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.segmented button.today::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
+.day-bar { position: relative; display: flex; height: 30px; margin-top: 14px; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
+.day-bar .seg { display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--ink); }
+.day-bar .seg + .seg { border-left: 2px solid var(--surface); }
+.day-bar .now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+.day-axis { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slots { margin-top: 10px; }
+.slot { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+.slot:first-child { border-top: 0; }
+.slot .input { width: 108px; flex: none; height: 40px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.temp-step { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.temp-value { min-width: 64px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.slot .icon-btn { width: 36px; height: 36px; }
+.slot-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.link-btn { padding: 0; font-size: 13px; font-weight: 600; color: var(--accent); background: none; border: 0; }
+.sp-info .link-btn { display: block; margin: 2px auto 0; font-size: inherit; }
+
+/* history */
+figure { margin: 0; }
+.chart-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.chart-controls .segmented { grid-auto-columns: auto; }
+.chart-controls .segmented button { padding: 6px 10px; }
+svg.plot { display: block; width: 100%; height: 210px; touch-action: pan-y; }
+.tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.grid { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.axis { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.target-line { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.area { opacity: 0.10; stroke: none; }
+.lane-track { fill: var(--grid); }
+.lane-on { fill: var(--temp); }
+.end-label { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cross { stroke: var(--ink-2); stroke-width: 1; shape-rendering: crispEdges; }
+.empty { fill: var(--muted); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.tooltip { position: absolute; z-index: 2; display: none; min-width: 160px; padding: 8px 10px; font-size: 13px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14); pointer-events: none; }
+.tooltip .time { margin-bottom: 4px; font-size: 12px; color: var(--muted); }
+.tooltip .t-row { display: flex; align-items: center; gap: 8px; }
+.tooltip strong { font-weight: 600; }
+.tooltip .name { color: var(--ink-2); }
+.chart-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.links { display: flex; gap: 14px; }
+.table-wrap { max-height: 320px; margin-top: 10px; overflow: auto; border-top: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 6px; text-align: right; border-bottom: 1px solid var(--grid); }
+th { position: sticky; top: 0; font-weight: 600; color: var(--ink-2); background: var(--surface); }
+th:first-child, td:first-child { text-align: left; }
+.dim { opacity: 0.55; transition: opacity 0.2s; }
+
+/* confirmation dialog */
+.dialog { width: min(92vw, 420px); padding: 20px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
+.dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+.dialog form { margin: 0; }
+.dialog-title { margin: 0 0 8px; font-size: 17px; font-weight: 650; }
+.dialog-text { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+:lang(ru) #view-thermo .tabs button { font-size: 13px; }  /* longer words: Управление, Расписание */
+@media (max-width: 380px) { .hero-value { font-size: 48px; } .side-value { font-size: 28px; } .tabs button, .subtabs button { font-size: 13px; } .sp-value { font-size: 38px; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></symbol>
+  <symbol id="i-ap" viewBox="0 0 24 24"><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M3 20v-2"/><path d="M8 20v-6"/><path d="M13 20V10"/><path d="M18 20V5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 3v6h-6"/><path d="M20.4 15a8.5 8.5 0 1 1-2-8.8L21 9"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.6 5.1A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.6 3.5"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.7 2.7L16 9.8"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-crit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+</svg>
+<!-- Every fixed text carries data-t (text), data-t-aria (aria-label) or
+     data-t-title (title): the key of its translation in L below. The Turkish
+     text in the markup is only what shows before the script runs. -->
+<main>
+  <header class="appbar">
+    <span id="brand" class="brand"><svg class="icon"><use href="#i-thermo"/></svg>Thermcon</span>
+    <span id="settings-head" class="brand" hidden><button id="back" class="icon-btn back-btn" type="button" aria-label="Termostata dön" title="Termostata dön" data-t-aria="back_thermo" data-t-title="back_thermo"><svg class="icon"><use href="#i-back"/></svg></button><span data-t="settings">Ayarlar</span></span>
+    <span class="appbar-end">
+      <span id="live" class="badge off" data-t="connecting">Bağlanıyor</span>
+      <button id="reboot" class="icon-btn reboot" type="button" aria-label="Cihazı yeniden başlat" title="Cihazı yeniden başlat" data-t-aria="reboot" data-t-title="reboot"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      <button id="open-settings" class="icon-btn gear" type="button" aria-label="Ayarlar" title="Ayarlar" data-t-aria="settings" data-t-title="settings"><svg class="icon"><use href="#i-gear"/></svg><span id="gear-dot" class="dot" hidden></span></button>
+    </span>
+  </header>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- ===== Termostat: the main page ===== -->
+  <div id="view-thermo">
+    <nav class="tabs" role="tablist" aria-label="Termostat" data-t-aria="nav_thermo">
+      <button id="tht-control" role="tab" aria-controls="ths-control" aria-selected="true" data-t="tab_control">Kontrol</button>
+      <button id="tht-program" role="tab" aria-controls="ths-program" aria-selected="false" tabindex="-1" data-t="tab_program">Program</button>
+      <button id="tht-history" role="tab" aria-controls="ths-history" aria-selected="false" tabindex="-1" data-t="tab_history">Geçmiş</button>
+      <button id="tht-advanced" role="tab" aria-controls="ths-advanced" aria-selected="false" tabindex="-1" data-t="tab_advanced">Gelişmiş</button>
+    </nav>
+
+    <!-- Kontrol -->
+    <div id="ths-control" role="tabpanel" aria-labelledby="tht-control" class="stack">
+      <div class="card">
+        <div class="hero">
+          <div>
+            <div class="metric-label"><span class="key" style="background: var(--temp)"></span><span data-t="room_temp">Oda sıcaklığı</span></div>
+            <div class="hero-value"><span id="temp">—</span><span class="unit">°C</span></div>
+          </div>
+          <div class="side">
+            <div class="metric-label"><span class="key" style="background: var(--hum)"></span><span data-t="m_hum">Nem</span></div>
+            <div id="hum" class="side-value">—</div>
+          </div>
+        </div>
+        <div class="meta">
+          <span id="age">Sensör bekleniyor…</span>
+          <span class="meta-items">
+            <span id="bat-item" class="meta-item"><svg class="icon"><use href="#i-battery"/></svg><span id="bat">—</span></span>
+            <span id="sig-item" class="meta-item"><svg class="icon"><use href="#i-signal"/></svg><span id="sig">—</span></span>
+          </span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title"><svg class="icon"><use href="#i-flame"/></svg><span data-t="heating">Isıtma</span></span>
+          <span id="heat-badge" class="badge off">—</span>
+        </div>
+        <div class="setpoint">
+          <button id="sp-down" class="round-btn" type="button" aria-label="Hedefi 0,5 °C düşür" data-t-aria="sp_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+          <div class="sp-center">
+            <div id="sp-value" class="sp-value" aria-live="polite">—</div>
+            <div class="sp-label" data-t="target_temp">Hedef sıcaklık</div>
+          </div>
+          <button id="sp-up" class="round-btn" type="button" aria-label="Hedefi 0,5 °C yükselt" data-t-aria="sp_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+        </div>
+        <p id="sp-info" class="sp-info"></p>
+        <div class="sep"></div>
+        <div id="seg-thermo" class="segmented block" role="group" aria-label="Çalışma modu" data-t-aria="op_mode">
+          <button type="button" data-value="program" data-t="mode_program">Program</button>
+          <button type="button" data-value="manual" data-t="mode_manual">Manuel</button>
+          <button type="button" data-value="off" data-t="mode_off">Kapalı</button>
+        </div>
+        <div id="ctl-actions" class="actions" hidden>
+          <button id="ctl-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+          <button id="ctl-apply" class="btn btn-primary" type="button" data-t="apply">Uygula</button>
+        </div>
+      </div>
+      <div id="control-msg" role="alert"></div>
+      <div id="alerts" class="stack"></div>
+    </div>
+
+    <!-- Program -->
+    <div id="ths-program" role="tabpanel" aria-labelledby="tht-program" class="stack" hidden>
+      <div class="card">
+        <div id="days" class="segmented block" role="group" aria-label="Gün" data-t-aria="day_group">
+          <button type="button" data-day="0">Pzt</button>
+          <button type="button" data-day="1">Sal</button>
+          <button type="button" data-day="2">Çar</button>
+          <button type="button" data-day="3">Per</button>
+          <button type="button" data-day="4">Cum</button>
+          <button type="button" data-day="5">Cmt</button>
+          <button type="button" data-day="6">Paz</button>
+        </div>
+        <div id="day-bar" class="day-bar" aria-hidden="true"></div>
+        <div class="day-axis" aria-hidden="true"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        <div id="slots" class="slots"></div>
+        <div class="slot-actions">
+          <button id="slot-add" class="btn btn-secondary btn-sm" type="button"><svg class="icon"><use href="#i-plus"/></svg><span data-t="add_time">Saat ekle</span></button>
+          <span class="copy-row"><span data-t="copy_day">Bu günü kopyala:</span>
+            <button class="link-btn" type="button" data-copy="weekdays" data-t="copy_weekdays">Hafta içi</button>
+            <button class="link-btn" type="button" data-copy="weekend" data-t="copy_weekend">Hafta sonu</button>
+            <button class="link-btn" type="button" data-copy="all" data-t="copy_all">Tüm günler</button>
+          </span>
+        </div>
+        <p class="help" data-t="prog_help">Her saat, o günün bir sonraki saatine kadar geçerli olan hedef sıcaklığı belirler.</p>
+      </div>
+      <div id="prog-confirm" class="card" hidden>
+        <div class="card-title" data-t="unapplied">Uygulanmamış değişiklikler var</div>
+        <p class="help" data-t="prog_apply_help">Program, Uygula'ya basınca hemen geçerli olur.</p>
+        <div class="actions">
+          <button id="prog-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+          <button id="prog-apply" class="btn btn-primary" type="button" data-t="apply">Uygula</button>
+        </div>
+      </div>
+      <div id="prog-msg" role="alert"></div>
+    </div>
+
+    <!-- Geçmiş -->
+    <div id="ths-history" role="tabpanel" aria-labelledby="tht-history" class="stack" hidden>
+      <select id="sensor" class="input" aria-label="Sensör" data-t-aria="sensor" hidden></select>
+      <figure class="card">
+        <div class="chart-controls">
+          <div id="seg-measure" class="segmented" role="group" aria-label="Grafik" data-t-aria="chart_kind">
+            <button type="button" data-value="temp" data-t="m_temp">Sıcaklık</button>
+            <button type="button" data-value="hum" data-t="m_hum">Nem</button>
+          </div>
+          <div id="seg-range" class="segmented" role="group" aria-label="Zaman aralığı" data-t-aria="range">
+            <button type="button" data-value="1" data-t="h1">1 sa</button>
+            <button type="button" data-value="6" data-t="h6">6 sa</button>
+            <button type="button" data-value="24" data-t="h24">24 sa</button>
+            <button type="button" data-value="168" data-t="d7" hidden>7 gün</button>
+            <button type="button" data-value="720" data-t="d30" hidden>30 gün</button>
+          </div>
+        </div>
+        <svg id="chart" class="plot" tabindex="0" role="img" aria-label="Grafik"></svg>
+        <div id="tooltip" class="tooltip" aria-hidden="true">
+          <div id="tt-time" class="time"></div>
+          <div class="t-row"><span class="key" style="background: var(--temp)"></span><strong id="tt-temp"></strong><span class="name" data-t="m_temp">Sıcaklık</span></div>
+          <div class="t-row"><span class="key" style="background: var(--hum)"></span><strong id="tt-hum"></strong><span class="name" data-t="m_hum">Nem</span></div>
+          <div class="t-row"><span class="key dash"></span><strong id="tt-sp"></strong><span class="name" data-t="target">Hedef</span></div>
+          <div class="t-row"><span class="key band" style="background: var(--temp)"></span><strong id="tt-on"></strong><span class="name" data-t="boiler">Kombi</span></div>
+        </div>
+        <div id="legend" class="legend"></div>
+        <div class="chart-foot">
+          <span id="range-note"></span>
+          <span class="links"><button id="toggle-table" class="link-btn" type="button" aria-expanded="false">Tablo</button><button id="csv" class="link-btn" type="button" data-t="csv">CSV indir</button></span>
+        </div>
+        <p id="hist-source" class="help"></p>
+        <div id="table-wrap" class="table-wrap" hidden>
+          <table>
+            <thead><tr><th data-t="th_time">Zaman</th><th data-t="th_temp">Sıcaklık (°C)</th><th data-t="th_hum">Nem (%)</th><th data-t="th_target">Hedef (°C)</th><th data-t="boiler">Kombi</th></tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </figure>
+    </div>
+
+    <!-- Gelişmiş -->
+    <div id="ths-advanced" role="tabpanel" aria-labelledby="tht-advanced" class="stack" hidden>
+      <form id="adv-form" class="card" autocomplete="off">
+        <div class="card-head"><span class="card-title" data-t="adv_title">Gelişmiş sıcaklık ayarları</span></div>
+        <div class="field">
+          <div class="label-row">
+            <div class="label" id="hyst-label" data-t="hysteresis">Histeresiz</div>
+            <button id="hyst-default" class="link-btn" type="button" data-t="hyst_default" hidden>Varsayılana dön (1,0 °C)</button>
+          </div>
+          <div class="stepper" role="group" aria-labelledby="hyst-label">
+            <button id="hyst-down" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C azalt" data-t-aria="hyst_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+            <span id="hyst-value" class="stepper-value" aria-live="polite">—</span>
+            <button id="hyst-up" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C artır" data-t-aria="hyst_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+          </div>
+          <p id="hyst-help" class="help"></p>
+        </div>
+        <div class="sep"></div>
+        <div class="field">
+          <div class="label-row">
+            <div class="label" id="dwell-label" data-t="dwell">Röle koruması</div>
+            <button id="dwell-default" class="link-btn" type="button" data-t="dwell_default" hidden>Varsayılana dön (3 dk)</button>
+          </div>
+          <div class="stepper" role="group" aria-labelledby="dwell-label">
+            <button id="dwell-down" class="round-btn small" type="button" aria-label="Süreyi 1 dakika kısalt" data-t-aria="dwell_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+            <span id="dwell-value" class="stepper-value" aria-live="polite">—</span>
+            <button id="dwell-up" class="round-btn small" type="button" aria-label="Süreyi 1 dakika uzat" data-t-aria="dwell_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+          </div>
+          <p class="help" data-t="dwell_help">Kombi çalışmaya başlayınca ya da durunca en az bu kadar süre öyle kalır. Mod ya da hedef sık değişse de röle ve kombi kısa aralıklarla açılıp kapanmaz.</p>
+        </div>
+        <div class="sep"></div>
+        <div id="adv-sensor-field" class="field" hidden>
+          <label for="adv-sensor" data-t="ctl_sensor">Kontrol sensörü</label>
+          <select id="adv-sensor" class="input"></select>
+          <p class="help" data-t="ctl_sensor_help">Termostat bu sensörün ölçtüğü sıcaklığa göre çalışır.</p>
+        </div>
+        <dl class="kv">
+          <div id="adv-sensor-row"><dt data-t="ctl_sensor">Kontrol sensörü</dt><dd id="adv-sensor-v">—</dd></div>
+          <div><dt data-t="relay_conn">Röle bağlantısı</dt><dd id="relay-v">—</dd></div>
+        </dl>
+        <p id="relay-help" class="help"></p>
+        <div id="adv-actions" class="actions" hidden>
+          <button id="adv-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+          <button id="adv-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+        </div>
+      </form>
+      <div id="adv-msg" role="alert"></div>
+    </div>
+  </div>
+
+  <!-- ===== Ayarlar: opened with the gear ===== -->
+  <div id="view-settings" hidden>
+  <nav class="tabs" role="tablist" aria-label="Ayarlar" data-t-aria="settings">
+    <button id="tab-wifi" class="local-only" role="tab" aria-controls="panel-wifi" aria-selected="true"><svg class="icon"><use href="#i-wifi"/></svg><span>Wi-Fi</span></button>
+    <button id="tab-ap" class="local-only" role="tab" aria-controls="panel-ap" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-ap"/></svg><span>AP</span></button>
+    <button id="tab-cloud" role="tab" aria-controls="panel-cloud" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-cloud"/></svg><span data-t="tab_cloud">Bulut</span></button>
+    <button id="tab-general" role="tab" aria-controls="panel-general" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-globe"/></svg><span data-t="tab_general">Genel</span></button>
+  </nav>
+
+  <!-- Wi-Fi -->
+  <section id="panel-wifi" role="tabpanel" aria-labelledby="tab-wifi" class="stack">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title"><svg class="icon"><use href="#i-wifi"/></svg><span data-t="home_net">Ev ağı</span></span>
+        <span id="wifi-badge" class="badge off">—</span>
+      </div>
+      <dl class="kv">
+        <div><dt data-t="network">Ağ</dt><dd id="wifi-ssid-v">—</dd></div>
+        <div><dt data-t="ip">IP adresi</dt><dd id="wifi-ip-v">—</dd></div>
+        <div><dt data-t="signal">Sinyal</dt><dd id="wifi-rssi-v">—</dd></div>
+        <div><dt data-t="local_addr">Yerel adres</dt><dd>thermcon.local</dd></div>
+      </dl>
+      <div id="wifi-change-row" class="actions" hidden><button id="wifi-change" class="btn btn-secondary" type="button" data-t="other_net">Farklı bir ağa bağlan</button></div>
+    </div>
+    <form id="wifi-form" class="card" autocomplete="off" hidden>
+      <div class="card-head">
+        <span class="card-title" data-t="join_net">Ağa bağlan</span>
+        <button id="rescan" class="icon-btn" type="button" aria-label="Ağları yeniden tara" title="Ağları yeniden tara" data-t-aria="rescan" data-t-title="rescan"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      </div>
+      <div class="field">
+        <label for="wifi-select" data-t="network">Ağ</label>
+        <select id="wifi-select" class="input"><option data-t="scanning">Ağlar taranıyor…</option></select>
+        <p class="help" data-t="only_24">Yalnızca 2,4 GHz ağlar listelenir.</p>
+      </div>
+      <div id="wifi-ssid-field" class="field" hidden>
+        <label for="wifi-ssid" data-t="net_name">Ağ adı</label>
+        <input id="wifi-ssid" class="input" type="text" maxlength="32" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="wifi-pass" data-t="net_pass">Ağ şifresi</label>
+        <div class="input-wrap"><input id="wifi-pass" class="input" type="password" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="icon-btn" type="button" data-reveal="wifi-pass" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+      </div>
+      <div id="wifi-msg" role="alert"></div>
+      <div class="actions">
+        <button id="wifi-cancel" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="wifi-save" class="btn btn-primary" type="submit" data-t="connect">Bağlan</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- AP -->
+  <section id="panel-ap" role="tabpanel" aria-labelledby="tab-ap" hidden>
+    <nav class="subtabs" role="tablist" aria-label="Erişim noktası" data-t-aria="ap_title">
+      <button id="apt-status" role="tab" aria-controls="aps-status" aria-selected="true" data-t="ap_status">Durum</button>
+      <button id="apt-network" role="tab" aria-controls="aps-network" aria-selected="false" tabindex="-1" data-t="network">Ağ</button>
+      <button id="apt-security" role="tab" aria-controls="aps-security" aria-selected="false" tabindex="-1"><span data-t="ap_security">Güvenlik</span><span id="sec-dot" class="dot" role="img" aria-label="fabrika şifresi kullanılıyor" data-t-aria="factory_dot" hidden></span></button>
+    </nav>
+
+    <div id="aps-status" role="tabpanel" aria-labelledby="apt-status" class="stack">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title"><svg class="icon"><use href="#i-ap"/></svg><span data-t="ap_title">Erişim noktası</span></span>
+          <span id="ap-badge" class="badge off">—</span>
+        </div>
+        <dl class="kv">
+          <div><dt data-t="net_name">Ağ adı</dt><dd id="ap-ssid-v">—</dd></div>
+          <div><dt data-t="ap_security">Güvenlik</dt><dd id="ap-sec-v">—</dd></div>
+          <div><dt data-t="ap_when">Açılma koşulu</dt><dd id="ap-mode-v">—</dd></div>
+          <div><dt data-t="ap_clients">Bağlı cihaz</dt><dd id="ap-clients-v">—</dd></div>
+          <div><dt data-t="uptime">Çalışma süresi</dt><dd id="uptime-v">—</dd></div>
+        </dl>
+      </div>
+      <div id="ap-warning"></div>
+    </div>
+
+    <!-- One form behind the Ağ and Güvenlik sub-tabs; Vazgeç / Uygula show once something changed. -->
+    <form id="ap-form" autocomplete="off" hidden>
+      <div id="aps-network" role="tabpanel" aria-labelledby="apt-network" class="card" hidden>
+        <div class="field">
+          <label for="ap-ssid" data-t="ssid_label">Ağ adı (SSID)</label>
+          <input id="ap-ssid" class="input" type="text" maxlength="32" autocapitalize="none" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="field switch-row">
+          <div><div class="label" data-t="hide_ssid">Ağ adını gizle</div><p class="help" data-t="hide_ssid_help">Gizli ağa bağlanırken adı elle yazılır.</p></div>
+          <input id="ap-hidden" class="switch" type="checkbox" role="switch" aria-label="Ağ adını gizle" data-t-aria="hide_ssid">
+        </div>
+        <div class="sep"></div>
+        <div class="field">
+          <div class="label" id="mode-label" data-t="ap_when_label">Ne zaman açık olsun</div>
+          <div id="seg-mode" class="segmented block" role="group" aria-labelledby="mode-label">
+            <button type="button" data-value="offline" data-t="apmode_offline_short">Gerektiğinde</button>
+            <button type="button" data-value="always" data-t="apmode_always_short">Her zaman</button>
+          </div>
+          <p id="mode-help" class="help"></p>
+        </div>
+      </div>
+
+      <div id="aps-security" role="tabpanel" aria-labelledby="apt-security" class="card" hidden>
+        <div class="field">
+          <div class="label" id="sec-label" data-t="sec_type">Güvenlik türü</div>
+          <div id="seg-security" class="segmented block" role="group" aria-labelledby="sec-label">
+            <button type="button" data-value="wpa2_wpa3">WPA2/WPA3</button>
+            <button type="button" data-value="wpa2">WPA2</button>
+            <button type="button" data-value="wpa3">WPA3</button>
+          </div>
+          <p id="sec-help" class="help"></p>
+        </div>
+        <div class="sep"></div>
+        <div class="field">
+          <label for="ap-pass" data-t="new_pass">Yeni şifre</label>
+          <div class="input-wrap"><input id="ap-pass" class="input" type="password" maxlength="63" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="icon-btn" type="button" data-reveal="ap-pass" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+        </div>
+        <div class="field">
+          <label for="ap-pass2" data-t="new_pass2">Yeni şifre (tekrar)</label>
+          <div class="input-wrap"><input id="ap-pass2" class="input" type="password" maxlength="63" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="icon-btn" type="button" data-reveal="ap-pass2" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+          <p class="help" data-t="new_pass_help">8–63 karakter. Boş bırakırsan şifre değişmez. Wi-Fi ayarları da bu şifreyle korunur.</p>
+        </div>
+      </div>
+
+      <div id="ap-confirm" class="card" hidden>
+        <div class="card-title" data-t="unapplied">Uygulanmamış değişiklikler var</div>
+        <p class="help" data-t="ap_apply_help">Erişim noktası, Uygula'ya basınca yeni ayarlarla yeniden açılır.</p>
+        <div class="actions">
+          <button id="ap-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+          <button id="ap-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+        </div>
+      </div>
+      <div id="ap-msg" role="alert"></div>
+    </form>
+  </section>
+
+  <!-- Bulut: ThingSpeak keeps the history for good and shows it anywhere -->
+  <section id="panel-cloud" role="tabpanel" aria-labelledby="tab-cloud" hidden>
+    <nav class="subtabs local-only" role="tablist" aria-label="Bulut" data-t-aria="tab_cloud">
+      <button id="clt-ts" role="tab" aria-controls="cls-ts" aria-selected="true">ThingSpeak</button>
+      <button id="clt-remote" role="tab" aria-controls="cls-remote" aria-selected="false" tabindex="-1" data-t="remote_tab">Uzaktan erişim</button>
+    </nav>
+    <div id="cls-ts" role="tabpanel" aria-labelledby="clt-ts" class="stack">
+    <form id="cloud-form" class="card" autocomplete="off">
+      <div class="card-head">
+        <span class="card-title"><svg class="icon"><use href="#i-cloud"/></svg>ThingSpeak</span>
+        <span id="cloud-badge" class="badge off">—</span>
+      </div>
+      <div class="field switch-row">
+        <div><div class="label" data-t="cloud_send">Verileri ThingSpeak'e gönder</div><p class="help" data-t="cloud_send_help">Dakikada bir sıcaklık, nem ve kombi durumu gönderilir.</p></div>
+        <input id="cloud-on" class="switch" type="checkbox" role="switch" aria-label="Verileri ThingSpeak'e gönder" data-t-aria="cloud_send">
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <label for="cloud-channel" data-t="cloud_channel">Kanal numarası (Channel ID)</label>
+        <input id="cloud-channel" class="input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="cloud-wkey">Write API Key</label>
+        <input id="cloud-wkey" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <p class="help" data-t="cloud_wkey_help">Cihaz verileri kanala bu anahtarla yazar.</p>
+      </div>
+      <div class="field">
+        <label for="cloud-rkey">Read API Key</label>
+        <input id="cloud-rkey" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <p class="help" data-t="cloud_rkey_help">Geçmiş grafiği bu anahtarla okunur.</p>
+      </div>
+      <div class="sep"></div>
+      <dl class="kv">
+        <div><dt data-t="cloud_last">Son gönderim</dt><dd id="cloud-last-v">—</dd></div>
+        <div><dt data-t="cloud_sent">Gönderilen (açılıştan beri)</dt><dd id="cloud-sent-v">—</dd></div>
+      </dl>
+      <div id="cloud-error"></div>
+      <div id="cloud-check"></div>
+      <p class="help"><a id="cloud-link" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open">Kanalı ThingSpeak'te aç</a></p>
+      <div id="cloud-actions" class="actions" hidden>
+        <button id="cloud-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="cloud-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+      </div>
+    </form>
+    <div id="cloud-msg" role="alert"></div>
+    </div>
+
+    <div id="cls-remote" role="tabpanel" aria-labelledby="clt-remote" class="stack" hidden>
+    <form id="remote-form" class="card" autocomplete="off">
+      <div class="card-head">
+        <span class="card-title"><svg class="icon"><use href="#i-phone"/></svg><span data-t="remote_title">Uzaktan erişim</span></span>
+        <span id="remote-badge" class="badge off">—</span>
+      </div>
+      <div class="field switch-row">
+        <div><div class="label" data-t="remote_on">Uzaktan erişimi aç</div><p class="help" data-t="remote_on_help">Evin dışından telefonla izleme ve kontrol.</p></div>
+        <input id="remote-on" class="switch" type="checkbox" role="switch" aria-label="Uzaktan erişimi aç" data-t-aria="remote_on">
+      </div>
+      <div class="sep"></div>
+      <div class="field">
+        <label for="remote-host" data-t="remote_host">Sunucu adresi</label>
+        <input id="remote-host" class="input" type="text" maxlength="64" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="remote-user" data-t="remote_user">Kullanıcı adı</label>
+        <input id="remote-user" class="input" type="text" maxlength="32" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="remote-pass" data-t="remote_pass">Şifre</label>
+        <div class="input-wrap"><input id="remote-pass" class="input" type="password" maxlength="64" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="icon-btn" type="button" data-reveal="remote-pass" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+        <p class="help" data-t="remote_user_help">Cihazın EMQX'e bağlandığı kullanıcı.</p>
+      </div>
+      <div class="field">
+        <label for="remote-url" data-t="remote_url">Uzak uygulama adresi</label>
+        <input id="remote-url" class="input" type="url" maxlength="96" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://…">
+        <p class="help" data-t="remote_url_help">Uzaktan arayüzün yayınlandığı adres.</p>
+      </div>
+      <div class="sep"></div>
+      <dl class="kv">
+        <div><dt data-t="remote_uptime">Bağlantı süresi</dt><dd id="remote-uptime-v">—</dd></div>
+        <div><dt data-t="remote_requests">Uzaktan komutlar (açılıştan beri)</dt><dd id="remote-requests-v">—</dd></div>
+        <div><dt data-t="remote_id">Cihaz kimliği</dt><dd id="remote-id-v">—</dd></div>
+      </dl>
+      <div id="remote-error"></div>
+      <p id="remote-setup" class="help"></p>
+      <div id="remote-actions" class="actions" hidden>
+        <button id="remote-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="remote-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+      </div>
+    </form>
+    <div id="remote-msg" role="alert"></div>
+    </div>
+  </section>
+
+  <!-- Genel -->
+  <section id="panel-general" role="tabpanel" aria-labelledby="tab-general" class="stack" hidden>
+    <div class="card">
+      <div class="card-head"><span class="card-title"><svg class="icon"><use href="#i-globe"/></svg><span data-t="language">Dil</span></span></div>
+      <div id="seg-lang" class="segmented block" role="group" aria-label="Dil" data-t-aria="language">
+        <button type="button" data-value="tr" lang="tr">Türkçe</button>
+        <button type="button" data-value="ru" lang="ru">Русский</button>
+      </div>
+      <p class="help" data-t="language_help">Arayüz dili. Bu cihazı açan bütün telefon ve bilgisayarlarda geçerli olur.</p>
+      <div id="lang-actions" class="actions" hidden>
+        <button id="lang-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="lang-apply" class="btn btn-primary" type="button" data-t="apply">Uygula</button>
+      </div>
+    </div>
+    <div id="lang-msg" role="alert"></div>
+    <div class="card local-only">
+      <div class="card-head"><span class="card-title"><svg class="icon"><use href="#i-chip"/></svg><span data-t="fw_title">Yazılım</span></span></div>
+      <dl class="kv">
+        <div><dt data-t="fw_running">Yüklü sürüm</dt><dd id="fw-running">—</dd></div>
+        <div><dt data-t="fw_build">Kimlik</dt><dd id="fw-build">—</dd></div>
+      </dl>
+      <div id="fw-state"></div>
+      <div class="sep"></div>
+      <div class="field">
+        <div class="label" data-t="fw_new">Güncelleme</div>
+        <input id="fw-file" type="file" accept=".bin,application/octet-stream" hidden>
+        <button id="fw-pick" class="btn btn-secondary btn-block" type="button"><svg class="icon"><use href="#i-upload"/></svg><span data-t="fw_pick">Dosya seç (.bin)</span></button>
+        <p id="fw-file-info" class="help"></p>
+      </div>
+      <div id="fw-progress" class="fw-progress" hidden>
+        <div id="fw-bar" class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+        <div class="progress-row"><span id="fw-phase"></span><span id="fw-pct"></span></div>
+      </div>
+      <div id="fw-actions" class="actions" hidden>
+        <button id="fw-cancel" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="fw-start" class="btn btn-primary" type="button" data-t="fw_update">Güncelle</button>
+      </div>
+    </div>
+    <div id="fw-msg" role="alert"></div>
+    <div class="card remote-only">
+      <div class="card-head"><span class="card-title"><svg class="icon"><use href="#i-phone"/></svg><span data-t="logout_title">Uzaktan oturum</span></span></div>
+      <dl class="kv"><div><dt data-t="remote_user">Kullanıcı adı</dt><dd id="session-user">—</dd></div></dl>
+      <div class="actions"><button id="logout" class="btn btn-secondary" type="button" data-t="logout">Bu telefonda oturumu kapat</button></div>
+    </div>
+  </section>
+  </div>
+</main>
+
+<div id="login" class="login" hidden>
+  <form id="login-form" class="card login-card">
+    <div class="brand"><svg class="icon"><use href="#i-thermo"/></svg>Thermcon</div>
+    <p id="login-text" class="help"></p>
+    <div id="login-fields">
+      <div class="field">
+        <label for="login-user" data-t="remote_user">Kullanıcı adı</label>
+        <input id="login-user" class="input" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="login-pass" data-t="remote_pass">Şifre</label>
+        <div class="input-wrap"><input id="login-pass" class="input" type="password" autocomplete="current-password"><button class="icon-btn" type="button" data-reveal="login-pass" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
+      </div>
+      <div id="login-msg" role="alert"></div>
+      <div class="actions"><button id="login-go" class="btn btn-primary" type="submit" data-t="login_go">Bağlan</button></div>
+    </div>
+  </form>
+</div>
+
+<dialog id="confirm" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+  <form method="dialog">
+    <h2 id="confirm-title" class="dialog-title"></h2>
+    <p id="confirm-text" class="dialog-text"></p>
+    <div class="actions">
+      <button class="btn btn-secondary" value="cancel" data-t="cancel">Vazgeç</button>
+      <button id="confirm-ok" class="btn btn-primary" value="ok"></button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// Published copy (HTTPS, e.g. GitHub Pages): reaches the device through EMQX.
+// "?remote" forces it for tests.
+const REMOTE = location.protocol === "https:" || /[?&]remote\b/.test(location.search);
+"use strict";
+// No zooming anywhere. iOS Safari ignores the viewport's user-scalable, so its
+// pinch gestures are cancelled here too.
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("gesturechange", (e) => e.preventDefault());
+document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+const $ = (id) => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const NBSP = " ";
+const HOUR = 3600e3;
+const STALE_S = 180;
+const OTHER = "\u0000other";
+const T_MIN = 5;          // targets, °C, in 0.5 °C steps
+const T_MAX = 30;
+const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps
+const H_MAX = 3;
+const H_DEFAULT = 1;
+const D_MIN = 1;          // relay dwell, minutes
+const D_MAX = 10;
+const D_DEFAULT = 3;
+const MAX_SLOTS = 6;      // program periods a day
+const JSON_HEADERS = { "Content-Type": "application/json" };
+const utf8Len = (s) => new TextEncoder().encode(s).length;
+const pad2 = (n) => String(n).padStart(2, "0");
+const hhmm = (min) => pad2(Math.floor(min / 60)) + ":" + pad2(min % 60);
+
+/* ---------- languages ---------- */
+
+// Turkish locative suffix for a time as it is read aloud: "06:30'da", "23:00'te".
+const LOC_ONES = ["", "de", "de", "te", "te", "te", "da", "de", "de", "da"];
+const LOC_TENS = ["da", "da", "de", "da", "ta", "de"];  // sıfır, on, yirmi, otuz, kırk, elli
+function atTime(min) {
+  const n = min % 60 || Math.floor(min / 60);
+  return hhmm(min) + "'" + (n % 10 ? LOC_ONES[n % 10] : LOC_TENS[n / 10]);
+}
+
+// Every text the page shows. Functions build the sentences that take values.
+const L = {
+  tr: {
+    locale: "tr-TR",
+    pct: (v) => "%" + v,
+    days: ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"],
+    days_short: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+    // "23:00'te", "yarın 06:30'da", "Cumartesi 08:00'de"
+    when: (next, clock) => {
+      if (!clock || next.day === clock.day) return atTime(next.min);
+      return (next.day === (clock.day + 1) % 7 ? "yarın " : L.tr.days[next.day] + " ") + atTime(next.min);
+    },
+    ago: (s) => (s < 60 ? Math.max(0, Math.round(s)) + " sn" : s < 3600 ? Math.round(s / 60) + " dk"
+      : s < 86400 ? Math.floor(s / 3600) + " sa " + Math.round((s % 3600) / 60) + " dk"
+      : Math.floor(s / 86400) + " gün " + Math.floor((s % 86400) / 3600) + " sa"),
+    minutes: (m) => (m < 60 ? m + " dk" : Math.floor(m / 60) + " sa" + (m % 60 ? " " + (m % 60) + " dk" : "")),
+    wait: (s) => [s >= 60 ? Math.floor(s / 60) + " dk" : "", s % 60 ? (s % 60) + " sn" : ""].filter(Boolean).join(" "),
+    dwell_value: (m) => m + " dk",
+    q_strong: "Güçlü", q_medium: "Orta", q_weak: "Zayıf",
+    connecting: "Bağlanıyor",
+    settings: "Ayarlar",
+    back_thermo: "Termostata dön",
+    nav_thermo: "Termostat",
+    tab_control: "Kontrol", tab_program: "Program", tab_history: "Geçmiş", tab_advanced: "Gelişmiş",
+    room_temp: "Oda sıcaklığı",
+    m_temp: "Sıcaklık", m_hum: "Nem",
+    heating: "Isıtma",
+    target_temp: "Hedef sıcaklık",
+    sp_down: "Hedefi 0,5 °C düşür", sp_up: "Hedefi 0,5 °C yükselt",
+    op_mode: "Çalışma modu",
+    mode_program: "Program", mode_manual: "Manuel", mode_off: "Kapalı",
+    cancel: "Vazgeç", apply: "Uygula",
+    day_group: "Gün",
+    add_time: "Saat ekle",
+    copy_day: "Bu günü kopyala:",
+    copy_weekdays: "Hafta içi", copy_weekend: "Hafta sonu", copy_all: "Tüm günler",
+    prog_help: "Her saat, o günün bir sonraki saatine kadar geçerli olan hedef sıcaklığı belirler.",
+    unapplied: "Uygulanmamış değişiklikler var",
+    prog_apply_help: "Program, Uygula'ya basınca hemen geçerli olur.",
+    sensor: "Sensör",
+    chart_kind: "Grafik",
+    range: "Zaman aralığı",
+    h1: "1 sa", h6: "6 sa", h24: "24 sa",
+    target: "Hedef",
+    boiler: "Kombi",
+    table: "Tablo", table_hide: "Tabloyu gizle",
+    csv: "CSV indir",
+    th_time: "Zaman", th_temp: "Sıcaklık (°C)", th_hum: "Nem (%)", th_target: "Hedef (°C)",
+    adv_title: "Gelişmiş sıcaklık ayarları",
+    hysteresis: "Histeresiz",
+    hyst_default: "Varsayılana dön (1,0 °C)",
+    hyst_down: "Histeresizi 0,1 °C azalt", hyst_up: "Histeresizi 0,1 °C artır",
+    dwell: "Röle koruması",
+    dwell_default: "Varsayılana dön (3 dk)",
+    dwell_down: "Süreyi 1 dakika kısalt", dwell_up: "Süreyi 1 dakika uzat",
+    dwell_help: "Kombi çalışmaya başlayınca ya da durunca en az bu kadar süre öyle kalır. Mod ya da hedef sık değişse de röle ve kombi kısa aralıklarla açılıp kapanmaz.",
+    ctl_sensor: "Kontrol sensörü",
+    ctl_sensor_help: "Termostat bu sensörün ölçtüğü sıcaklığa göre çalışır.",
+    relay_conn: "Röle bağlantısı",
+    tab_general: "Genel",
+    tab_cloud: "Bulut",
+    login_text: "Uzaktan erişim için EMQX kullanıcı adınızı ve şifrenizi girin. Yalnızca bu telefonda saklanır.",
+    login_go: "Bağlan",
+    login_setup: "Bu uygulamayı ilk kez evde açın: cihazın Ayarlar › Bulut › Uzaktan erişim sayfasındaki \"Telefonu kur\" bağlantısına dokunun.",
+    login_err_auth: "Kullanıcı adı ya da şifre yanlış.",
+    login_err_net: "Sunucuya bağlanılamadı; internet bağlantısını kontrol edin.",
+    alert_remote_server: "Sunucuya (EMQX) bağlanılamıyor. Telefonun internet bağlantısını kontrol edin.",
+    alert_remote_device: (ago) => "Thermcon şu an internete bağlı değil" + (ago ? "; son görülme " + ago + " önce" : "") + ".",
+    logout_title: "Uzaktan oturum",
+    logout: "Bu telefonda oturumu kapat",
+    conf_logout: "Bu telefonda kayıtlı EMQX şifresi silinecek; uygulamayı yeniden açınca girmeniz gerekecek.",
+    yes_logout: "Evet, kapat",
+    hist_remote_off: "Uzaktan geçmiş için ThingSpeak açık olmalı (Ayarlar › Bulut).",
+    remote_tab: "Uzaktan erişim",
+    remote_title: "Uzaktan erişim",
+    remote_on: "Uzaktan erişimi aç",
+    remote_on_help: "Evin dışından telefonla izleme ve kontrol. Cihaz EMQX'e şifreli bağlanır; evde port açmak gerekmez.",
+    remote_host: "Sunucu adresi",
+    remote_user: "Kullanıcı adı",
+    remote_pass: "Şifre",
+    remote_user_help: "Cihazın EMQX'e bağlandığı kullanıcı. Şifresi EMQX'te değişirse burada da değiştirin.",
+    remote_url: "Uzak uygulama adresi",
+    remote_url_help: "Uzaktan arayüzün yayınlandığı https adresi.",
+    remote_uptime: "Bağlantı süresi",
+    remote_requests: "Uzaktan komutlar (açılıştan beri)",
+    remote_id: "Cihaz kimliği",
+    remote_badge_connected: "Bağlı", remote_badge_connecting: "Bağlanıyor", remote_badge_error: "Hata", remote_badge_off: "Kapalı",
+    remote_err_no_wifi: "İnternet bağlantısı yok; EMQX'e bağlanılamıyor.",
+    remote_err_auth: "EMQX kullanıcı adını ya da şifreyi kabul etmedi.",
+    remote_err_connect: "EMQX sunucusuna bağlanılamadı; adresi kontrol edin.",
+    remote_err_tls: "EMQX ile güvenli bağlantı kurulamadı.",
+    remote_setup: "Telefonu kur",
+    remote_setup_help: "Bu bağlantıyı telefonda açın, kendi EMQX kullanıcı adınız ve şifrenizle girin, sonra Paylaş › Ana Ekrana Ekle ile ekleyin.",
+    remote_no_app: "Uzak uygulama adresi girilince telefon kurulum bağlantısı burada görünür.",
+    ch_remote_on: "Uzaktan erişim açılacak.",
+    ch_remote_off: "Uzaktan erişim kapatılacak.",
+    ch_remote_cfg: "Uzaktan erişim bilgileri değişecek.",
+    err_remote_fields: "Sunucu adresi, kullanıcı adı ve şifre gerekli.",
+    err_remote_url: "Uzak uygulama adresi https:// ile başlamalı.",
+    cloud_send: "Verileri ThingSpeak'e gönder",
+    cloud_send_help: "Dakikada bir sıcaklık, nem ve kombi durumu gönderilir. ESP32 yeniden başlasa da geçmiş kaybolmaz ve her yerden izlenebilir.",
+    cloud_channel: "Kanal numarası (Channel ID)",
+    cloud_wkey_help: "Cihaz verileri kanala bu anahtarla yazar.",
+    cloud_rkey_help: "Geçmiş grafiği bu anahtarla okunur.",
+    cloud_last: "Son gönderim",
+    cloud_sent: "Gönderilen (açılıştan beri)",
+    cloud_open: "Kanalı ThingSpeak'te aç",
+    cloud_ago: (ago) => ago + " önce",
+    cloud_badge_ok: "Gönderiyor", cloud_badge_err: "Hata", cloud_badge_off: "Kapalı", cloud_badge_wait: "Bekliyor",
+    cloud_err_no_wifi: "İnternet bağlantısı yok; veriler gönderilemiyor.",
+    cloud_err_connect: "ThingSpeak'e bağlanılamadı.",
+    cloud_err_http: "ThingSpeak bir hata döndürdü.",
+    cloud_err_rejected: "ThingSpeak veriyi kabul etmedi; Write API Key'i kontrol edin.",
+    cloud_field_1: "Field 1 (sıcaklık)", cloud_field_2: "Field 2 (nem)", cloud_field_3: "Field 3 (kombi)",
+    cloud_field_4: "Field 4 (hedef)",
+    cloud_chk_missing: (list) => "Kanalda " + list + " açık değil; ThingSpeak bu verileri kaydetmiyor. " +
+      "ThingSpeak'te Channel Settings'ten bu alanları işaretleyip kaydedin.",
+    cloud_chk_target: "Kanalda Field 4 (hedef) açık değil; grafikte hedef çizgisi görünmez. " +
+      "İsterseniz ThingSpeak'te Channel Settings'ten açabilirsiniz.",
+    cloud_chk_channel: "ThingSpeak'te bu numarada bir kanal yok; kanal numarasını kontrol edin.",
+    cloud_chk_rkey: "Kanal okunamadı; Read API Key'i kontrol edin. Geçmiş grafiği bu kanaldan gösterilemiyor.",
+    err_channel: "Kanal numarası geçersiz.",
+    err_key: "API anahtarları 16 karakterdir: büyük harf ve rakam.",
+    ch_cloud_on: "Veriler dakikada bir ThingSpeak'e gönderilecek.",
+    ch_cloud_off: "ThingSpeak'e gönderim duracak.",
+    ch_cloud_cfg: "ThingSpeak kanal bilgileri değişecek.",
+    d7: "7 gün", d30: "30 gün",
+    range_text: (h) => (h <= 24 ? h + " saat" : h / 24 + " gün"),
+    hist_cloud: "Veriler ThingSpeak'ten; cihaz yeniden başlasa da kaybolmaz.",
+    hist_device: "Veriler cihazdan; cihaz yeniden başlayınca sıfırlanır. Kalıcı geçmiş için Ayarlar › Bulut'tan ThingSpeak'i açın.",
+    hist_cloud_fail: "ThingSpeak'e ulaşılamadı; cihazdaki veriler gösteriliyor.",
+    hist_cloud_nofield: "ThingSpeak kanalında Field 1 (sıcaklık) açık değil; cihazdaki veriler gösteriliyor.",
+    home_net: "Ev ağı",
+    network: "Ağ",
+    ip: "IP adresi",
+    signal: "Sinyal",
+    local_addr: "Yerel adres",
+    other_net: "Farklı bir ağa bağlan",
+    join_net: "Ağa bağlan",
+    rescan: "Ağları yeniden tara",
+    scanning: "Ağlar taranıyor…",
+    only_24: "Yalnızca 2,4 GHz ağlar listelenir.",
+    net_name: "Ağ adı",
+    net_pass: "Ağ şifresi",
+    show_pass: "Şifreyi göster", hide_pass: "Şifreyi gizle",
+    connect: "Bağlan",
+    ap_title: "Erişim noktası",
+    ap_status: "Durum",
+    ap_security: "Güvenlik",
+    factory_dot: "fabrika şifresi kullanılıyor",
+    ap_when: "Açılma koşulu",
+    ap_clients: "Bağlı cihaz",
+    uptime: "Çalışma süresi",
+    ssid_label: "Ağ adı (SSID)",
+    hide_ssid: "Ağ adını gizle",
+    hide_ssid_help: "Gizli ağa bağlanırken adı elle yazılır.",
+    ap_when_label: "Ne zaman açık olsun",
+    apmode_offline_short: "Gerektiğinde", apmode_always_short: "Her zaman",
+    apmode_offline: "Ev ağına bağlanamadığında",
+    apmode_always: "Her zaman",
+    apmode_offline_help: "Normalde kapalı kalır; ev ağına bağlanamazsa kendiliğinden açılır.",
+    apmode_always_help: "Erişim noktası sürekli açık kalır.",
+    sec_type: "Güvenlik türü",
+    sec_wpa2_wpa3: "Önerilen. Yeni cihazlar WPA3, eskiler WPA2 ile bağlanır.",
+    sec_wpa2: "En uyumlu seçenek; eski cihazlar için.",
+    sec_wpa3: "En güvenli seçenek; WPA3 desteklemeyen cihazlar bağlanamaz.",
+    new_pass: "Yeni şifre",
+    new_pass2: "Yeni şifre (tekrar)",
+    new_pass_help: "8–63 karakter. Boş bırakırsan şifre değişmez. Wi-Fi ayarları da bu şifreyle korunur.",
+    ap_apply_help: "Erişim noktası, Uygula'ya basınca yeni ayarlarla yeniden açılır.",
+    language: "Dil",
+    language_help: "Arayüz dili. Bu cihazı açan bütün telefon ve bilgisayarlarda geçerli olur.",
+    lang_tr: "Türkçe", lang_ru: "Rusça",
+    conf_lang: (name) => "Arayüz dili " + name + " olacak.",
+    err_unreachable: "Cihaza ulaşılamadı, tekrar dene.",
+    err_save: "Kaydedilemedi, bilgileri kontrol edip tekrar dene.",
+    err_value: "Bu değer kabul edilmedi.",
+    err_save2: "Kaydedilemedi, tekrar dene.",
+    sure: "Emin misiniz?",
+    yes_apply: "Evet, uygula",
+    reboot: "Cihazı yeniden başlat",
+    conf_reboot: "Cihaz yeniden başlatılacak; bağlantı genellikle 10 saniyeden kısa sürede geri gelir. Ayarlar korunur.",
+    conf_reboot_relay: "Röle, cihaz açılınca kaldığı durumdan devam eder.",
+    conf_reboot_hist: "Cihazdaki geçmiş grafiği sıfırlanır.",
+    yes_reboot: "Evet, yeniden başlat",
+    toast_rebooting: "Cihaz yeniden başlatılıyor…",
+    fw_title: "Yazılım",
+    fw_running: "Yüklü sürüm",
+    fw_build: "Kimlik",
+    fw_new: "Güncelleme",
+    fw_pick: "Dosya seç (.bin)",
+    fw_pick_help: "Bilgisayarda derlenen therm.bin dosyasını seçin; cihaz Wi-Fi üzerinden güncellenir.",
+    fw_file: (name, size, when) => name + " · " + size + " · " + when + " derlemesi",
+    fw_same: "Bu sürüm zaten yüklü.",
+    fw_update: "Güncelle",
+    conf_ota: (when) => "Cihaza " + when + " derlemesi yüklenecek. Yükleme bitene kadar bu sayfayı kapatmayın; " +
+      "cihaz sonra kendiliğinden yeniden başlar. Yeni yazılım açılmazsa önceki sürüme kendiliğinden döner.",
+    yes_update: "Evet, güncelle",
+    fw_uploading: "Yükleniyor…",
+    fw_verifying: "Cihaz dosyayı doğruluyor…",
+    fw_restarting: "Cihaz yeni yazılımla yeniden başlıyor…",
+    fw_pending: "Yeni yazılım deneniyor; Wi-Fi'ye bağlanınca kalıcı olur.",
+    fw_rolled_back: "Son güncelleme açılamadı; önceki sürüme dönüldü.",
+    fw_err_not_thermcon: "Bu dosya Thermcon yazılımı değil.",
+    fw_err_too_big: "Dosya cihazın yazılım alanına sığmıyor.",
+    fw_err_busy: "Başka bir güncelleme sürüyor.",
+    fw_err_verifying: "Cihaz önceki güncellemeyi hâlâ deniyor; bir dakika sonra tekrar deneyin.",
+    fw_err_invalid_image: "Dosya bozuk; hiçbir şey değişmedi. Dosyayı yeniden alıp deneyin.",
+    fw_err_write_failed: "Yazılım cihaza yazılamadı; eski sürüm çalışmaya devam ediyor.",
+    fw_err_network: "Yükleme yarıda kesildi; eski sürüm çalışmaya devam ediyor.",
+    fw_err_canceled: "Güncelleme iptal edildi; eski sürüm çalışmaya devam ediyor.",
+    toast_ota_verifying: "Yeni yazılım deneniyor…",
+    toast_ota_done: "Yazılım güncellendi.",
+    toast_rebooted: "Cihaz yeniden başladı.",
+    restart_power: (ago) => "Cihaz " + ago + " yeniden başladı: elektrik kesilmiş ya da reset düğmesine basılmış.",
+    restart_sw: (ago) => "Cihaz " + ago + " yeniden başlatıldı.",
+    restart_crash: (ago) => "Cihaz " + ago + " bir yazılım hatası nedeniyle yeniden başladı.",
+    restart_brownout: (ago) => "Cihaz " + ago + " besleme voltajı düştüğü için yeniden başladı; adaptörü ve kabloyu kontrol edin.",
+    restart_other: (ago) => "Cihaz " + ago + " yeniden başladı.",
+    err_reboot: "Yeniden başlatma isteği cihaza ulaşmadı.",
+    applied: "Uygulandı.",
+    sensor_n: (mac) => "Sensör " + mac,
+    waiting_sensor: "Sensör bekleniyor…",
+    last_reading: (ago) => "Son ölçüm " + ago + " önce",
+    battery: "Sensör pili",
+    battery_v: (v) => "Sensör pili " + v + " V",
+    sensor_signal: "Sensör sinyali",
+    signal_dbm: (n) => "Sensör sinyali " + n + " dBm",
+    dbm: "dBm",
+    live_off: "Bağlantı yok", live_ok: "Canlı", live_wait: "Veri bekleniyor", live_reboot: "Yeniden başlıyor",
+    alert_offline: "Thermcon cihazına ulaşılamıyor. Bağlantı gelince veriler kendiliğinden güncellenir.",
+    alert_released_nc: "Sensörden güncel ölçüm yok. Röle bırakıldı; kombi kendi ayarıyla çalışıyor.",
+    alert_released_no: "Sensörden güncel ölçüm yok. Güvenlik için ısıtma durduruldu.",
+    alert_stale: (ago) => "Sensörden " + ago + " süredir veri gelmiyor.",
+    alert_battery: (p) => "Sensör pili zayıf (" + p + "). Pili değiştirmeyi planla.",
+    alert_signal: "Sensör sinyali zayıf. Sensörü cihaza yaklaştırmayı dene.",
+    alert_factory: "Cihaz hâlâ fabrika şifresini kullanıyor.",
+    change_pass: "Şifreyi değiştir",
+    badge_own: "Kombi kendi ayarında", badge_stopped: "Isıtma durdu", badge_frost: "Donma koruması",
+    badge_heating: "Isıtıyor", badge_off: "Kapalı", badge_idle: "Beklemede",
+    info_pending: "Değişiklik, Uygula'ya basınca geçerli olur.",
+    info_hold: (wait, heating) => "Röle koruması: kombi " + wait + " sonra " + (heating ? "duracak." : "çalışacak."),
+    info_off: "Ev 5" + NBSP + "°C'nin altına inerse donma koruması devreye girer.",
+    info_manual: "Manuel: siz değiştirene kadar sabit kalır.",
+    info_noclock: "Saat bilinmiyor; program yerine manuel hedef kullanılıyor.",
+    info_override: (when) => "Geçici hedef · program " + when + " devam eder.",
+    info_program: (when, temp) => "Program · " + when + " hedef " + temp + " olur",
+    back_to_program: "Programa dön",
+    conf_mode: (a, b) => "Mod " + a + " yerine " + b + " olacak.",
+    conf_override: (when, temp) => "Hedef, program " + when + " devam edene kadar " + temp + " olacak.",
+    conf_target: (a, b) => "Hedef sıcaklık " + a + " yerine " + b + " olacak.",
+    conf_resume: "Geçici hedef bırakılacak, program kaldığı yerden devam edecek.",
+    yes_resume: "Evet, programa dön",
+    prog_load_fail: "Program alınamadı. Sayfayı yenileyip tekrar dene.",
+    now: "Şu an",
+    slot_aria: (day, n) => day + ", " + n + ". dönemin başlangıç saati",
+    temp_down: "Sıcaklığı düşür", temp_up: "Sıcaklığı yükselt",
+    del_time: "Bu saati sil",
+    copied: (day, which) => day + " programı " + { weekdays: "hafta içi günlere", weekend: "hafta sonuna", all: "bütün günlere" }[which] + " kopyalandı.",
+    dup_time: (day) => day + " gününde aynı saat iki kez var.",
+    conf_program: "Haftalık program değişecek ve hemen uygulanacak.",
+    prog_fail: "Program uygulanamadı; saatleri ve sıcaklıkları kontrol et.",
+    hyst_help: (target, low, high) => "Hedef " + target + " iken kombi " + low + NBSP + "°C'de çalışmaya başlar, " + high + NBSP +
+      "°C'de durur. Küçük değer sıcaklığı daha sabit tutar ama kombiyi daha sık açıp kapatır.",
+    not_found: "Henüz bulunamadı",
+    relay_nc: "NC (normalde kapalı)", relay_no: "NO (normalde açık)",
+    relay_help: (nc) => "Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; " +
+      (nc ? "kombi kendi ayarıyla çalışır." : "kombi çalışmaz."),
+    conf_hyst: (a, b) => "Histeresiz " + a + " yerine " + b + " olacak.",
+    conf_dwell: (a, b) => "Röle koruması " + a + " dk yerine " + b + " dk olacak.",
+    conf_sensor: (mac) => "Termostat " + mac + " sensörüne göre çalışacak.",
+    conf_now: " Değişiklik hemen uygulanır.",
+    boiler_ran: "Kombi çalıştı",
+    chart_collecting: "Grafik için veri toplanıyor (dakikada bir kayıt)",
+    chart_no_data: (name) => name + " grafiği: henüz yeterli veri yok",
+    heat_ran: (dur) => "kombi " + dur + " çalıştı",
+    heat_none: "kombi çalışmadı",
+    range_note: (min, max, heat) => "En düşük " + min + " · en yüksek " + max + (heat ? " · " + heat : ""),
+    chart_aria: (name, range, min, max, last, heat) => name + ", son " + range + ": en düşük " + min + ", en yüksek " + max +
+      (last ? ", son değer " + last : "") + (heat ? "; " + heat : ""),
+    no_data: "veri yok",
+    ran: "çalıştı", on_lc: "açık", off_lc: "kapalı",
+    csv_head: "Zaman;Sıcaklık (°C);Nem (%);Hedef (°C);Kombi",
+    wifi_connected: "Bağlı", wifi_failing: "Bağlanamıyor", wifi_unset: "Ayarlanmadı",
+    open_net: ", şifresiz",
+    other_net_opt: "Başka bir ağ…",
+    scan_fail: "Ağlar alınamadı · adı elle yaz",
+    err_ssid: "Ağ adı 1–32 karakter olmalı.",
+    err_wifi_pass: "Wi-Fi şifresi 8–64 karakter olmalı (şifresiz ağ için boş bırak).",
+    wifi_saved: (ssid) => "Kaydedildi. Thermcon “" + ssid + "” ağına bağlanıyor. Bu sayfa bağlantıyı kaybedebilir; yeni ağda http://thermcon.local adresinden açabilirsin.",
+    conf_wifi: (ssid) => "Thermcon “" + ssid + "” ağına bağlanacak.",
+    yes_connect: "Evet, bağlan",
+    ap_on: "Açık", ap_off: "Kapalı", unknown: "Bilinmiyor",
+    hidden_suffix: " (gizli)",
+    ap_factory_warn: "Fabrika şifresi kullanılıyor; ağ adından tahmin edilebilir.",
+    err_pass_match: "Yeni şifreler birbirini tutmuyor.",
+    err_ap_pass: "Şifre 8–63 karakter olmalı.",
+    ch_ssid: (s) => "Ağ adı “" + s + "” olacak.",
+    ch_hidden: "Ağ adı gizlenecek.", ch_visible: "Ağ adı görünür olacak.",
+    ch_always: "Erişim noktası her zaman açık kalacak.",
+    ch_offline: "Erişim noktası yalnızca ev ağına bağlanılamadığında açılacak.",
+    ch_sec: (s) => "Güvenlik " + s + " olacak.",
+    ch_pass: "Şifre değişecek; Wi-Fi ayarları da yeni şifreyle korunacak.",
+    ch_restart: "Erişim noktası yeniden açılacak, ona bağlı cihazların yeniden bağlanması gerekecek.",
+  },
+  ru: {
+    locale: "ru-RU",
+    pct: (v) => v + "%",
+    days: ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"],
+    days_short: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    // "в 23:00", "завтра в 06:30", "в субботу в 08:00"
+    when: (next, clock) => {
+      const at = "в " + hhmm(next.min);
+      if (!clock || next.day === clock.day) return at;
+      if (next.day === (clock.day + 1) % 7) return "завтра " + at;
+      return ["в понедельник", "во вторник", "в среду", "в четверг", "в пятницу", "в субботу", "в воскресенье"][next.day] + " " + at;
+    },
+    ago: (s) => (s < 60 ? Math.max(0, Math.round(s)) + " с" : s < 3600 ? Math.round(s / 60) + " мин"
+      : s < 86400 ? Math.floor(s / 3600) + " ч " + Math.round((s % 3600) / 60) + " мин"
+      : Math.floor(s / 86400) + " д " + Math.floor((s % 86400) / 3600) + " ч"),
+    minutes: (m) => (m < 60 ? m + " мин" : Math.floor(m / 60) + " ч" + (m % 60 ? " " + (m % 60) + " мин" : "")),
+    wait: (s) => [s >= 60 ? Math.floor(s / 60) + " мин" : "", s % 60 ? (s % 60) + " с" : ""].filter(Boolean).join(" "),
+    dwell_value: (m) => m + " мин",
+    q_strong: "Сильный", q_medium: "Средний", q_weak: "Слабый",
+    connecting: "Подключение",
+    settings: "Настройки",
+    back_thermo: "Назад к термостату",
+    nav_thermo: "Термостат",
+    tab_control: "Управление", tab_program: "Расписание", tab_history: "История", tab_advanced: "Параметры",
+    room_temp: "Температура в комнате",
+    m_temp: "Температура", m_hum: "Влажность",
+    heating: "Отопление",
+    target_temp: "Целевая температура",
+    sp_down: "Понизить цель на 0,5 °C", sp_up: "Повысить цель на 0,5 °C",
+    op_mode: "Режим работы",
+    mode_program: "Расписание", mode_manual: "Ручной", mode_off: "Выкл.",
+    cancel: "Отмена", apply: "Применить",
+    day_group: "День",
+    add_time: "Добавить время",
+    copy_day: "Копировать день:",
+    copy_weekdays: "Будни", copy_weekend: "Выходные", copy_all: "Все дни",
+    prog_help: "Каждое время задаёт целевую температуру до следующего времени в расписании.",
+    unapplied: "Есть неприменённые изменения",
+    prog_apply_help: "Расписание вступит в силу сразу после нажатия «Применить».",
+    sensor: "Датчик",
+    chart_kind: "График",
+    range: "Период",
+    h1: "1 ч", h6: "6 ч", h24: "24 ч",
+    target: "Цель",
+    boiler: "Котёл",
+    table: "Таблица", table_hide: "Скрыть таблицу",
+    csv: "Скачать CSV",
+    th_time: "Время", th_temp: "Температура (°C)", th_hum: "Влажность (%)", th_target: "Цель (°C)",
+    adv_title: "Дополнительные настройки температуры",
+    hysteresis: "Гистерезис",
+    hyst_default: "По умолчанию (1,0 °C)",
+    hyst_down: "Уменьшить гистерезис на 0,1 °C", hyst_up: "Увеличить гистерезис на 0,1 °C",
+    dwell: "Защита реле",
+    dwell_default: "По умолчанию (3 мин)",
+    dwell_down: "Уменьшить время на 1 минуту", dwell_up: "Увеличить время на 1 минуту",
+    dwell_help: "Включившись или остановившись, котёл остаётся в этом состоянии не меньше заданного времени. Даже при частой смене режима или цели реле и котёл не будут часто включаться и выключаться.",
+    ctl_sensor: "Датчик управления",
+    ctl_sensor_help: "Термостат работает по температуре этого датчика.",
+    relay_conn: "Подключение реле",
+    tab_general: "Общие",
+    tab_cloud: "Облако",
+    login_text: "Для удалённого доступа введите своё имя пользователя и пароль EMQX. Они хранятся только на этом телефоне.",
+    login_go: "Войти",
+    login_setup: "Впервые откройте это приложение дома: на устройстве в «Настройки › Облако › Удалённый доступ» нажмите «Настроить телефон».",
+    login_err_auth: "Неверное имя пользователя или пароль.",
+    login_err_net: "Не удалось подключиться к серверу; проверьте интернет.",
+    alert_remote_server: "Нет связи с сервером (EMQX). Проверьте интернет на телефоне.",
+    alert_remote_device: (ago) => "Thermcon сейчас не подключён к интернету" + (ago ? "; последний раз на связи " + ago + " назад" : "") + ".",
+    logout_title: "Удалённый сеанс",
+    logout: "Выйти на этом телефоне",
+    conf_logout: "Сохранённый на этом телефоне пароль EMQX будет удалён; при следующем запуске его нужно будет ввести снова.",
+    yes_logout: "Да, выйти",
+    hist_remote_off: "Для истории при удалённом доступе должен быть включён ThingSpeak (Настройки › Облако).",
+    remote_tab: "Удалённый доступ",
+    remote_title: "Удалённый доступ",
+    remote_on: "Включить удалённый доступ",
+    remote_on_help: "Наблюдение и управление с телефона вне дома. Устройство подключается к EMQX по шифрованному каналу; открывать порты дома не нужно.",
+    remote_host: "Адрес сервера",
+    remote_user: "Имя пользователя",
+    remote_pass: "Пароль",
+    remote_user_help: "Пользователь, под которым устройство подключается к EMQX. Если пароль в EMQX изменится, поменяйте его и здесь.",
+    remote_url: "Адрес удалённого приложения",
+    remote_url_help: "Адрес https, по которому опубликован удалённый интерфейс.",
+    remote_uptime: "Подключено уже",
+    remote_requests: "Удалённые команды (с запуска)",
+    remote_id: "Идентификатор устройства",
+    remote_badge_connected: "Подключено", remote_badge_connecting: "Подключение", remote_badge_error: "Ошибка", remote_badge_off: "Выкл.",
+    remote_err_no_wifi: "Нет интернета; подключиться к EMQX невозможно.",
+    remote_err_auth: "EMQX не принял имя пользователя или пароль.",
+    remote_err_connect: "Не удалось подключиться к серверу EMQX; проверьте адрес.",
+    remote_err_tls: "Не удалось установить защищённое соединение с EMQX.",
+    remote_setup: "Настроить телефон",
+    remote_setup_help: "Откройте эту ссылку на телефоне, войдите со своим именем и паролем EMQX, затем добавьте через «Поделиться › На экран „Домой“».",
+    remote_no_app: "Ссылка для настройки телефона появится здесь, когда будет указан адрес удалённого приложения.",
+    ch_remote_on: "Удалённый доступ будет включён.",
+    ch_remote_off: "Удалённый доступ будет выключен.",
+    ch_remote_cfg: "Параметры удалённого доступа изменятся.",
+    err_remote_fields: "Нужны адрес сервера, имя пользователя и пароль.",
+    err_remote_url: "Адрес удалённого приложения должен начинаться с https://.",
+    cloud_send: "Отправлять данные в ThingSpeak",
+    cloud_send_help: "Раз в минуту отправляются температура, влажность и состояние котла. История сохраняется при перезагрузке ESP32 и доступна отовсюду.",
+    cloud_channel: "Номер канала (Channel ID)",
+    cloud_wkey_help: "Этим ключом устройство записывает данные в канал.",
+    cloud_rkey_help: "По этому ключу читается график истории.",
+    cloud_last: "Последняя отправка",
+    cloud_sent: "Отправлено (с запуска)",
+    cloud_open: "Открыть канал в ThingSpeak",
+    cloud_ago: (ago) => ago + " назад",
+    cloud_badge_ok: "Отправляет", cloud_badge_err: "Ошибка", cloud_badge_off: "Выкл.", cloud_badge_wait: "Ожидание",
+    cloud_err_no_wifi: "Нет подключения к интернету; данные не отправляются.",
+    cloud_err_connect: "Не удалось подключиться к ThingSpeak.",
+    cloud_err_http: "ThingSpeak вернул ошибку.",
+    cloud_err_rejected: "ThingSpeak не принял данные; проверьте Write API Key.",
+    cloud_field_1: "Field 1 (температура)", cloud_field_2: "Field 2 (влажность)", cloud_field_3: "Field 3 (котёл)",
+    cloud_field_4: "Field 4 (цель)",
+    cloud_chk_missing: (list, n) => (n > 1 ? "В канале не включены поля " : "В канале не включено поле ") + list +
+      "; ThingSpeak эти данные не сохраняет. Включите их в ThingSpeak в Channel Settings.",
+    cloud_chk_target: "В канале не включено поле Field 4 (цель); линия цели на графике не показывается. " +
+      "При желании включите его в ThingSpeak в Channel Settings.",
+    cloud_chk_channel: "Канала с таким номером в ThingSpeak нет; проверьте номер канала.",
+    cloud_chk_rkey: "Не удалось прочитать канал; проверьте Read API Key. График истории из этого канала недоступен.",
+    err_channel: "Неверный номер канала.",
+    err_key: "Ключи API — 16 символов: заглавные латинские буквы и цифры.",
+    ch_cloud_on: "Данные будут отправляться в ThingSpeak раз в минуту.",
+    ch_cloud_off: "Отправка в ThingSpeak прекратится.",
+    ch_cloud_cfg: "Данные канала ThingSpeak изменятся.",
+    d7: "7 дн", d30: "30 дн",
+    range_text: (h) => (h <= 24 ? h + " ч" : h / 24 + " дн."),
+    hist_cloud: "Данные из ThingSpeak; сохраняются при перезагрузке устройства.",
+    hist_device: "Данные с устройства; сбрасываются при перезагрузке. Для постоянной истории включите ThingSpeak в Настройки › Облако.",
+    hist_cloud_fail: "ThingSpeak недоступен; показаны данные с устройства.",
+    hist_cloud_nofield: "В канале ThingSpeak не включено поле Field 1 (температура); показаны данные с устройства.",
+    home_net: "Домашняя сеть",
+    network: "Сеть",
+    ip: "IP-адрес",
+    signal: "Сигнал",
+    local_addr: "Локальный адрес",
+    other_net: "Подключиться к другой сети",
+    join_net: "Подключение к сети",
+    rescan: "Искать сети заново",
+    scanning: "Поиск сетей…",
+    only_24: "Показываются только сети 2,4 ГГц.",
+    net_name: "Имя сети",
+    net_pass: "Пароль сети",
+    show_pass: "Показать пароль", hide_pass: "Скрыть пароль",
+    connect: "Подключить",
+    ap_title: "Точка доступа",
+    ap_status: "Состояние",
+    ap_security: "Безопасность",
+    factory_dot: "используется заводской пароль",
+    ap_when: "Когда включается",
+    ap_clients: "Подключено устройств",
+    uptime: "Время работы",
+    ssid_label: "Имя сети (SSID)",
+    hide_ssid: "Скрыть имя сети",
+    hide_ssid_help: "Для подключения к скрытой сети имя вводится вручную.",
+    ap_when_label: "Когда включать",
+    apmode_offline_short: "При необходимости", apmode_always_short: "Всегда",
+    apmode_offline: "Без связи с домашней сетью",
+    apmode_always: "Всегда",
+    apmode_offline_help: "Обычно выключена; включается сама, если нет связи с домашней сетью.",
+    apmode_always_help: "Точка доступа включена постоянно.",
+    sec_type: "Тип защиты",
+    sec_wpa2_wpa3: "Рекомендуется. Новые устройства подключаются по WPA3, старые — по WPA2.",
+    sec_wpa2: "Самый совместимый вариант; для старых устройств.",
+    sec_wpa3: "Самый безопасный вариант; устройства без WPA3 не смогут подключиться.",
+    new_pass: "Новый пароль",
+    new_pass2: "Новый пароль (повтор)",
+    new_pass_help: "8–63 символа. Если оставить пустым, пароль не изменится. Этим паролем защищены и настройки Wi-Fi.",
+    ap_apply_help: "После нажатия «Применить» точка доступа перезапустится с новыми настройками.",
+    language: "Язык",
+    language_help: "Язык интерфейса. Действует на всех телефонах и компьютерах, которые открывают это устройство.",
+    lang_tr: "турецкий", lang_ru: "русский",
+    conf_lang: (name) => "Языком интерфейса станет " + name + ".",
+    err_unreachable: "Нет связи с устройством, попробуйте снова.",
+    err_save: "Не удалось сохранить; проверьте данные и попробуйте снова.",
+    err_value: "Это значение не принято.",
+    err_save2: "Не удалось сохранить, попробуйте снова.",
+    sure: "Вы уверены?",
+    yes_apply: "Да, применить",
+    reboot: "Перезагрузить устройство",
+    conf_reboot: "Устройство будет перезагружено; связь обычно восстанавливается менее чем за 10 секунд. Настройки сохранятся.",
+    conf_reboot_relay: "После перезагрузки реле продолжает с того же состояния.",
+    conf_reboot_hist: "История на устройстве будет сброшена.",
+    yes_reboot: "Да, перезагрузить",
+    toast_rebooting: "Устройство перезагружается…",
+    fw_title: "Прошивка",
+    fw_running: "Установленная версия",
+    fw_build: "Идентификатор",
+    fw_new: "Обновление",
+    fw_pick: "Выбрать файл (.bin)",
+    fw_pick_help: "Выберите файл therm.bin, собранный на компьютере; устройство обновится по Wi-Fi.",
+    fw_file: (name, size, when) => name + " · " + size + " · сборка " + when,
+    fw_same: "Эта версия уже установлена.",
+    fw_update: "Обновить",
+    conf_ota: (when) => "На устройство будет загружена сборка " + when + ". Не закрывайте страницу до конца загрузки; " +
+      "затем устройство перезапустится само. Если новая прошивка не запустится, оно само вернётся к прежней версии.",
+    yes_update: "Да, обновить",
+    fw_uploading: "Загрузка…",
+    fw_verifying: "Устройство проверяет файл…",
+    fw_restarting: "Устройство перезапускается с новой прошивкой…",
+    fw_pending: "Новая прошивка проверяется; станет постоянной после подключения к Wi-Fi.",
+    fw_rolled_back: "Последнее обновление не запустилось; возвращена прежняя версия.",
+    fw_err_not_thermcon: "Этот файл не является прошивкой Thermcon.",
+    fw_err_too_big: "Файл не помещается в память устройства.",
+    fw_err_busy: "Уже идёт другое обновление.",
+    fw_err_verifying: "Устройство ещё проверяет предыдущее обновление; повторите через минуту.",
+    fw_err_invalid_image: "Файл повреждён; ничего не изменено. Получите файл заново и повторите.",
+    fw_err_write_failed: "Не удалось записать прошивку; работает прежняя версия.",
+    fw_err_network: "Загрузка прервалась; работает прежняя версия.",
+    fw_err_canceled: "Обновление отменено; работает прежняя версия.",
+    toast_ota_verifying: "Новая прошивка проверяется…",
+    toast_ota_done: "Прошивка обновлена.",
+    toast_rebooted: "Устройство перезагружено.",
+    restart_power: (ago) => "Устройство перезапустилось " + ago + ": пропадало питание или нажата кнопка сброса.",
+    restart_sw: (ago) => "Устройство перезагружено " + ago + ".",
+    restart_crash: (ago) => "Устройство перезапустилось " + ago + " из-за программной ошибки.",
+    restart_brownout: (ago) => "Устройство перезапустилось " + ago + " из-за просадки питания; проверьте блок питания и кабель.",
+    restart_other: (ago) => "Устройство перезапустилось " + ago + ".",
+    err_reboot: "Команда перезагрузки не дошла до устройства.",
+    applied: "Применено.",
+    sensor_n: (mac) => "Датчик " + mac,
+    waiting_sensor: "Ожидание датчика…",
+    last_reading: (ago) => "Последнее измерение " + ago + " назад",
+    battery: "Батарея датчика",
+    battery_v: (v) => "Батарея датчика " + v + " В",
+    sensor_signal: "Сигнал датчика",
+    signal_dbm: (n) => "Сигнал датчика " + n + " дБм",
+    dbm: "дБм",
+    live_off: "Нет связи", live_ok: "Онлайн", live_wait: "Ожидание данных", live_reboot: "Перезагрузка",
+    alert_offline: "Нет связи с устройством Thermcon. Данные обновятся сами, когда связь восстановится.",
+    alert_released_nc: "Нет свежих данных от датчика. Реле отпущено; котёл работает по своим настройкам.",
+    alert_released_no: "Нет свежих данных от датчика. Отопление остановлено для безопасности.",
+    alert_stale: (ago) => "Данных от датчика нет уже " + ago + ".",
+    alert_battery: (p) => "Батарея датчика разряжена (" + p + "). Запланируйте замену.",
+    alert_signal: "Слабый сигнал датчика. Попробуйте поставить датчик ближе к устройству.",
+    alert_factory: "Устройство всё ещё использует заводской пароль.",
+    change_pass: "Сменить пароль",
+    badge_own: "Котёл автономно", badge_stopped: "Отопление остановлено", badge_frost: "Защита от замерзания",
+    badge_heating: "Нагрев", badge_off: "Выкл.", badge_idle: "Ожидание",
+    info_pending: "Изменение вступит в силу после нажатия «Применить».",
+    info_hold: (wait, heating) => "Защита реле: котёл " + (heating ? "остановится" : "включится") + " через " + wait + ".",
+    info_off: "Если в доме станет ниже 5" + NBSP + "°C, включится защита от замерзания.",
+    info_manual: "Ручной режим: держится, пока вы его не измените.",
+    info_noclock: "Время неизвестно; вместо расписания используется ручная цель.",
+    info_override: (when) => "Временная цель · расписание продолжится " + when + ".",
+    info_program: (when, temp) => "Расписание · " + when + " цель станет " + temp,
+    back_to_program: "Вернуться к расписанию",
+    conf_mode: (a, b) => "Режим «" + a + "» сменится на «" + b + "».",
+    conf_override: (when, temp) => "Цель будет " + temp + ", пока расписание не продолжится " + when + ".",
+    conf_target: (a, b) => "Целевая температура изменится с " + a + " на " + b + ".",
+    conf_resume: "Временная цель будет отменена, расписание продолжится.",
+    yes_resume: "Да, вернуться к расписанию",
+    prog_load_fail: "Не удалось загрузить расписание. Обновите страницу и попробуйте снова.",
+    now: "Сейчас",
+    slot_aria: (day, n) => day + ", начало периода " + n,
+    temp_down: "Понизить температуру", temp_up: "Повысить температуру",
+    del_time: "Удалить это время",
+    copied: (day, which) => day + ": расписание скопировано " + { weekdays: "на будни", weekend: "на выходные", all: "на все дни" }[which] + ".",
+    dup_time: (day) => day + ": одно и то же время указано дважды.",
+    conf_program: "Недельное расписание изменится и сразу вступит в силу.",
+    prog_fail: "Не удалось применить расписание; проверьте время и температуры.",
+    hyst_help: (target, low, high) => "При цели " + target + " котёл включается при " + low + NBSP + "°C и выключается при " + high + NBSP +
+      "°C. Меньшее значение точнее держит температуру, но чаще включает котёл.",
+    not_found: "Пока не найден",
+    relay_nc: "NC (нормально замкнутый)", relay_no: "NO (нормально разомкнутый)",
+    relay_help: (nc) => "Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается; " +
+      (nc ? "котёл работает по своим настройкам." : "котёл не работает."),
+    conf_hyst: (a, b) => "Гистерезис изменится с " + a + " на " + b + ".",
+    conf_dwell: (a, b) => "Защита реле изменится с " + a + " мин на " + b + " мин.",
+    conf_sensor: (mac) => "Термостат будет работать по датчику " + mac + ".",
+    conf_now: " Изменение вступит в силу сразу.",
+    boiler_ran: "Котёл работал",
+    chart_collecting: "Собираются данные для графика (запись раз в минуту)",
+    chart_no_data: (name) => "График «" + name + "»: пока мало данных",
+    heat_ran: (dur) => "котёл работал " + dur,
+    heat_none: "котёл не работал",
+    range_note: (min, max, heat) => "Мин. " + min + " · макс. " + max + (heat ? " · " + heat : ""),
+    chart_aria: (name, range, min, max, last, heat) => name + ", последние " + range + ": мин. " + min + ", макс. " + max +
+      (last ? ", последнее значение " + last : "") + (heat ? "; " + heat : ""),
+    no_data: "нет данных",
+    ran: "работал", on_lc: "вкл.", off_lc: "выкл.",
+    csv_head: "Время;Температура (°C);Влажность (%);Цель (°C);Котёл",
+    wifi_connected: "Подключено", wifi_failing: "Нет подключения", wifi_unset: "Не настроено",
+    open_net: ", открытая",
+    other_net_opt: "Другая сеть…",
+    scan_fail: "Не удалось получить список сетей · введите имя вручную",
+    err_ssid: "Имя сети должно содержать 1–32 символа.",
+    err_wifi_pass: "Пароль Wi-Fi должен содержать 8–64 символа (для открытой сети оставьте пустым).",
+    wifi_saved: (ssid) => "Сохранено. Thermcon подключается к сети «" + ssid + "». Страница может потерять связь; в новой сети откройте http://thermcon.local.",
+    conf_wifi: (ssid) => "Thermcon подключится к сети «" + ssid + "».",
+    yes_connect: "Да, подключить",
+    ap_on: "Вкл.", ap_off: "Выкл.", unknown: "Неизвестно",
+    hidden_suffix: " (скрыта)",
+    ap_factory_warn: "Используется заводской пароль; его можно угадать по имени сети.",
+    err_pass_match: "Новые пароли не совпадают.",
+    err_ap_pass: "Пароль должен содержать 8–63 символа.",
+    ch_ssid: (s) => "Имя сети станет «" + s + "».",
+    ch_hidden: "Имя сети будет скрыто.", ch_visible: "Имя сети станет видимым.",
+    ch_always: "Точка доступа будет включена всегда.",
+    ch_offline: "Точка доступа будет включаться только без связи с домашней сетью.",
+    ch_sec: (s) => "Тип защиты станет " + s + ".",
+    ch_pass: "Пароль изменится; настройки Wi-Fi тоже будут защищены новым паролем.",
+    ch_restart: "Точка доступа перезапустится; подключённым устройствам нужно будет подключиться заново.",
+  },
+};
+
+let lang = "tr";
+// A key missing from a language falls back to Turkish.
+function t(key, ...args) {
+  const v = key in L[lang] ? L[lang][key] : L.tr[key];
+  return typeof v === "function" ? v(...args) : v;
+}
+let nf0, nf1, nf2, nf12;
+function makeFormats() {
+  const loc = t("locale");
+  nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+  nf1 = new Intl.NumberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  nf2 = new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  nf12 = new Intl.NumberFormat(loc, { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+}
+
+// Fixed texts of the markup, in the current language.
+function applyStatic() {
+  document.documentElement.lang = lang;
+  for (const e of document.querySelectorAll("[data-t]")) e.textContent = t(e.dataset.t);
+  for (const e of document.querySelectorAll("[data-t-aria]")) e.setAttribute("aria-label", t(e.dataset.tAria));
+  for (const e of document.querySelectorAll("[data-t-title]")) e.title = t(e.dataset.tTitle);
+  for (const b of $("days").querySelectorAll("button")) {
+    b.textContent = t("days_short")[b.dataset.day];
+    b.setAttribute("aria-label", t("days")[b.dataset.day]);
+  }
+  for (const b of document.querySelectorAll("[data-reveal]")) {
+    b.setAttribute("aria-label", t($(b.dataset.reveal).type === "password" ? "show_pass" : "hide_pass"));
+  }
+  $("toggle-table").textContent = t($("table-wrap").hidden ? "table" : "table_hide");
+}
+
+const MEASURES = {
+  // Geçmiş shows hundredths, as the device and ThingSpeak keep them.
+  temp: { key: "t", color: "var(--temp)", minSpan: 1, name: () => t("m_temp"), fmt: (v) => nf2.format(v) + NBSP + "°C" },
+  hum: { key: "h", color: "var(--hum)", minSpan: 4, name: () => t("m_hum"), fmt: (v) => t("pct", nf2.format(v)) },
+};
+const SECURITY_NAMES = { wpa2_wpa3: "WPA2/WPA3", wpa2: "WPA2", wpa3: "WPA3" };
+
+let status = null;
+let statusAt = 0;
+let failures = 0;
+let rebootAt = 0;       // when the device was asked to restart, until it is back
+let statusSeq = 0;      // status polls sent
+let pageBuild = null;   // the firmware that served this page
+let rebootLimit = 90e3; // how long a restart may take before the page gives up waiting
+let otaBusy = false;    // a firmware upload holds the device's web server: no status polls meanwhile
+let statusShown = 0;    // the newest poll whose answer is shown
+let hist = null;        // { times: [ms], t, h, sp: [°C|null], on: [0|1] }
+let sensor = 0;         // the sensor shown in Geçmiş
+let measure = "temp";
+let rangeH = 6;
+let hoverIdx = null;    // index into hist arrays
+let geo = null;         // scales of the drawn chart
+let wifiScanned = false;
+let wifiFormOpen = false;
+let wifiSaved = false;
+let wifiNets = null;    // the last scan, for relabelling it in another language
+let apSaved = null;     // access point settings as last read from the device
+let apActive = false;
+let apInfo = null;      // the last GET /api/ap
+let thermoAt = 0;       // when the device last answered a thermostat change
+let thermoDataAt = 0;   // when status.thermostat arrived, from a poll or a change
+let ctlMode = null;     // mode chosen on Kontrol but not applied yet
+let ctlTarget = null;   // target chosen with − / + but not applied yet
+let timeSent = false;
+let thSub = "control";
+let sched = null;       // the week as saved on the device: 7 days of [minute, °C]
+let schedEdit = null;   // the week being edited
+let schedDay = -1;
+let advHyst = null;     // hysteresis being edited
+let advSensor = "";     // control sensor being edited
+let advDwell = null;    // relay dwell being edited
+let langEdit = null;    // language chosen on Genel but not applied yet
+
+try {
+  rangeH = Number(localStorage.getItem("range")) || 6;
+  measure = localStorage.getItem("measure") === "hum" ? "hum" : "temp";
+  // The device's language arrives with the first status; this browser's last
+  // one avoids a flash of the other language before that.
+  if (localStorage.getItem("lang") === "ru") lang = "ru";
+} catch (e) { /* storage blocked */ }
+makeFormats();
+
+/* ---------- helpers ---------- */
+
+function icon(name) {
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "icon");
+  const use = document.createElementNS(NS, "use");
+  use.setAttribute("href", "#i-" + name);
+  svg.appendChild(use);
+  return svg;
+}
+function iconButton(name, label, onClick) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "icon-btn";
+  b.title = label;
+  b.setAttribute("aria-label", label);
+  b.appendChild(icon(name));
+  b.addEventListener("click", onClick);
+  return b;
+}
+function banner(kind, text, link) {
+  const el = document.createElement("div");
+  el.className = "banner " + kind;
+  const body = document.createElement("div");
+  body.textContent = text;
+  if (link) { body.append(" "); body.appendChild(link); }
+  el.append(icon(kind === "busy" ? "refresh" : kind), body);
+  return el;
+}
+function setBadge(el, kind, text) {
+  el.className = "badge " + kind;
+  el.textContent = text;
+}
+const msgTimers = {};
+function showMsg(id, kind, text) {
+  clearTimeout(msgTimers[id]);
+  $(id).replaceChildren(text ? banner(kind, text) : "");
+}
+// Success notes go away by themselves after two seconds.
+function flash(id, text) {
+  showMsg(id, "ok", text);
+  msgTimers[id] = setTimeout(() => showMsg(id), 2000);
+}
+
+// A notice about the device at the bottom of every page. text is a function, so a
+// language change can redo it; ms = 0 keeps it until the next one.
+let toastNote = null;
+let toastTimer = 0;
+function toast(kind, text, ms) {
+  clearTimeout(toastTimer);
+  toastNote = kind ? { kind, text } : null;
+  renderToast();
+  if (ms) toastTimer = setTimeout(() => toast(null), ms);
+}
+function renderToast() {
+  if (toastNote) $("toast").replaceChildren(banner(toastNote.kind, toastNote.text()));
+  else $("toast").replaceChildren();
+}
+function fmtTime(ms) { return new Date(ms).toLocaleTimeString(t("locale"), { hour: "2-digit", minute: "2-digit" }); }
+function fmtDay(ms) { return new Date(ms).toLocaleDateString(t("locale"), { day: "numeric", month: "short" }); }
+function fmtDateTime(ms) { return new Date(ms).toLocaleString(t("locale"), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+const fmtAgo = (s) => t("ago", s);
+const fmtC = (v) => nf1.format(v) + NBSP + "°C";
+const pct = (v) => t("pct", v);
+const sameNum = (a, b) => Math.abs(a - b) < 1e-6;
+const whenText = (next, clock) => t("when", next, clock);
+function bleQuality(rssi) { return t(rssi >= -70 ? "q_strong" : rssi >= -85 ? "q_medium" : "q_weak"); }
+function wifiQuality(rssi) { return t(rssi >= -60 ? "q_strong" : rssi >= -75 ? "q_medium" : "q_weak"); }
+function errorText(err) { return err instanceof TypeError ? t("err_unreachable") : err.message; }
+async function postJson(url, body) {
+  const r = await fetch(url, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(t("err_save"));
+  return r;
+}
+
+function segValue(group) { return $(group).dataset.value; }
+function setSeg(group, value) {
+  $(group).dataset.value = value;
+  for (const b of $(group).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.value === value));
+}
+function onSeg(group, handler) {
+  for (const b of $(group).querySelectorAll("button")) b.addEventListener("click", () => { setSeg(group, b.dataset.value); handler(b.dataset.value); });
+}
+
+for (const b of document.querySelectorAll("[data-reveal]")) {
+  b.addEventListener("click", () => {
+    const input = $(b.dataset.reveal);
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    b.setAttribute("aria-label", t(show ? "hide_pass" : "show_pass"));
+    b.replaceChildren(icon(show ? "eye-off" : "eye"));
+  });
+}
+
+// "Emin misiniz?" without a password; falls back to the browser's own prompt.
+function confirmDialog(title, text, okLabel) {
+  const dlg = $("confirm");
+  if (typeof dlg.showModal !== "function") return Promise.resolve(window.confirm(title + "\n\n" + text));
+  $("confirm-title").textContent = title;
+  $("confirm-text").textContent = text;
+  $("confirm-ok").textContent = okLabel;
+  dlg.returnValue = "";
+  return new Promise((resolve) => {
+    dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+    dlg.showModal();
+  });
+}
+
+/* ---------- pages and tabs ---------- */
+
+// The thermostat is the main page; the gear opens the settings page with
+// the Wi-Fi, AP and Genel tabs. A phone joining the access point lands on /setup.
+const SETTINGS_TABS = ["wifi", "ap", "cloud", "general"];
+const PATHS = { thermo: "/", wifi: "/setup", ap: "/ap", cloud: "/bulut", general: "/genel" };
+const tabFromPath = (p) => Object.keys(PATHS).find((k) => k !== "thermo" && PATHS[k] === p) || "thermo";
+let fromThermo = false;  // the settings page was opened from the thermostat page
+
+// how: "push" or "replace" the address, or leave it as it is.
+function showTab(name, how) {
+  const settings = name !== "thermo";
+  $("view-thermo").hidden = settings;
+  $("view-settings").hidden = !settings;
+  $("brand").hidden = settings;
+  $("settings-head").hidden = !settings;
+  $("open-settings").hidden = settings;
+  $("reboot").hidden = settings;
+  if (!settings) fromThermo = false;
+  for (const tab of SETTINGS_TABS) {
+    const selected = tab === name;
+    $("tab-" + tab).setAttribute("aria-selected", String(selected));
+    $("tab-" + tab).tabIndex = selected ? 0 : -1;
+    $("panel-" + tab).hidden = !selected;
+  }
+  if (how && !REMOTE && location.pathname !== PATHS[name]) {
+    if (how === "push") history.pushState(null, "", PATHS[name]);
+    else history.replaceState(null, "", PATHS[name]);
+  }
+  hideHover();
+  if (!settings && thSub === "history") renderChart();
+  if (name === "wifi") renderWifi();
+  if (name === "ap") loadAp();
+  if (name === "cloud") { showMsg("cloud-msg"); loadCloud(); if (!$("cls-remote").hidden) loadRemote(); }
+  if (name === "general") { langEdit = null; renderLang(); showMsg("lang-msg"); loadFirmware(); }
+  window.scrollTo(0, 0);
+}
+
+function openSettings(tab) {
+  if (!$("view-thermo").hidden) fromThermo = true;
+  showTab(tab, "push");
+}
+
+// Arrow keys move along a tab list (WAI-ARIA tabs pattern).
+function arrowKeys(names, tabOf, show) {
+  for (const n of names) {
+    tabOf(n).addEventListener("keydown", (e) => {
+      const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const next = names[(names.indexOf(n) + step + names.length) % names.length];
+      show(next);
+      tabOf(next).focus();
+    });
+  }
+}
+
+// Sub-tabs: buttons "<prefix>t-<name>" show panels "<prefix>s-<name>", one at a time.
+function subtabs(prefix, names, onShow) {
+  const tab = (n) => $(prefix + "t-" + n);
+  const show = (name) => {
+    for (const n of names) {
+      const selected = n === name;
+      tab(n).setAttribute("aria-selected", String(selected));
+      tab(n).tabIndex = selected ? 0 : -1;
+      $(prefix + "s-" + n).hidden = !selected;
+    }
+    onShow(name);
+  };
+  for (const n of names) tab(n).addEventListener("click", () => show(n));
+  arrowKeys(names, tab, show);
+  return show;
+}
+
+// Switching between the settings tabs replaces the address, so Back leaves the settings page.
+for (const tab of SETTINGS_TABS) $("tab-" + tab).addEventListener("click", () => showTab(tab, "replace"));
+arrowKeys(SETTINGS_TABS, (tab) => $("tab-" + tab), (tab) => showTab(tab, "replace"));
+$("open-settings").addEventListener("click", () => openSettings(REMOTE ? "cloud" : "wifi"));
+$("back").addEventListener("click", () => {
+  if (fromThermo) history.back();  // to the thermostat page it came from
+  else showTab("thermo", "push");
+});
+window.addEventListener("popstate", () => showTab(tabFromPath(location.pathname)));
+
+subtabs("th", ["control", "program", "history", "advanced"], (name) => {
+  thSub = name;
+  hideHover();
+  if (name === "program") openProgram();
+  if (name === "history") { renderChart(); renderTable(); fetchHistory(); }
+  if (name === "advanced") { renderAdvanced(true); showMsg("adv-msg"); }
+});
+
+/* ---------- status ---------- */
+
+// The sensor the thermostat follows (the first one until it has chosen).
+function controlSensor() {
+  if (!status || !status.sensors.length) return null;
+  const mac = status.thermostat && status.thermostat.sensor;
+  return status.sensors.find((x) => x.mac === mac) || status.sensors[0];
+}
+const sensorAge = (s) => (s && s.age_s != null ? s.age_s + (Date.now() - statusAt) / 1000 : null);
+
+async function fetchStatus() {
+  if (otaBusy) return;
+  const seq = ++statusSeq;
+  const started = Date.now();
+  // A connection the device dropped by restarting would hold the poll for long.
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 4e3);
+  try {
+    const r = await fetch("/api/status", { cache: "no-store", signal: abort.signal });
+    if (!r.ok) throw new Error(r.status);
+    const next = await r.json();
+    if (seq < statusShown) return;  // a newer poll got here first
+    statusShown = seq;
+    if (next.build && !REMOTE) {
+      if (pageBuild == null) pageBuild = next.build;
+      else if (next.build !== pageBuild) { location.reload(); return; }  // new firmware, new page
+    }
+    const prevUptime = status ? status.uptime_s : null;
+    // A poll sent before the latest change would show the old state again.
+    if (status && started < thermoAt) next.thermostat = status.thermostat;
+    else thermoDataAt = Date.now();
+    status = next;
+    statusAt = Date.now();
+    failures = 0;
+    noticeRestart(prevUptime);
+    noticeUpdate();
+    syncClock();
+    if (status.lang && status.lang !== lang && L[status.lang]) setLang(status.lang);
+  } catch (e) {
+    failures++;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (rebootAt && Date.now() - rebootAt > rebootLimit) {  // not back: the usual offline state
+    rebootAt = 0;
+    toast(null);
+  }
+  renderStatus();
+}
+
+// Tells when the device has restarted: asked to here, or by a power cut, its
+// reset button or an error (the device says which).
+function noticeRestart(prevUptime) {
+  const up = status.uptime_s;
+  if (rebootAt) {
+    const since = Date.now() - rebootAt;
+    if (up * 1000 < since) {
+      rebootAt = 0;
+      rebootLimit = 90e3;
+      timeSent = false;  // it may need this browser's clock again
+      toast("ok", () => t("toast_rebooted"), 4e3);
+    } else if (since > 10e3) {
+      rebootAt = 0;  // up since before the request: it never got there
+      rebootLimit = 90e3;
+      toast("crit", () => t("err_reboot"), 6e3);
+    }
+  } else if (prevUptime != null && up < prevUptime) {
+    timeSent = false;
+    const reason = L.tr["restart_" + status.reset] ? status.reset : "other";
+    toast(reason === "sw" ? "ok" : "warn", () => t("restart_" + reason, t("cloud_ago", fmtAgo(up))), 12e3);
+  }
+}
+
+/* ---------- restart ---------- */
+
+$("reboot").addEventListener("click", async () => {
+  if (rebootAt) return;
+  const th = status && status.thermostat;
+  const text = [t("conf_reboot")];
+  if (th && th.relay) text.push(t("conf_reboot_relay"));
+  if (!cloudOn()) text.push(t("conf_reboot_hist"));
+  if (!(await confirmDialog(t("sure"), text.join(" "), t("yes_reboot")))) return;
+  // Waiting starts before the request: the reply may not get out before the restart.
+  rebootAt = Date.now();
+  toast("busy", () => t("toast_rebooting"));
+  renderStatus();
+  try {
+    await postJson("/api/reboot", {});
+  } catch (e) {
+    if (e instanceof TypeError) return;  // no reply: the polls tell whether it restarted
+    rebootAt = 0;
+    toast("crit", () => t("err_reboot"), 6e3);
+    renderStatus();
+  }
+});
+// Faster polls while it restarts, to show it back soon.
+setInterval(() => { if (rebootAt) fetchStatus(); }, 2e3);
+
+// Without internet access the device does not know the time and cannot run
+// the program; this browser's clock fills in.
+function syncClock() {
+  if (timeSent || !status.thermostat || status.thermostat.clock) return;
+  timeSent = true;
+  fetch("/api/time", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ epoch: Math.floor(Date.now() / 1000) }) })
+    .then(fetchStatus, () => { timeSent = false; });
+}
+
+function renderSensorPicker() {
+  const sel = $("sensor");
+  const list = status ? status.sensors : [];
+  sel.hidden = list.length < 2;
+  if (sel.hidden) return;
+  const key = lang + list.map((s) => s.mac).join();
+  if (sel.dataset.key !== key) {
+    sel.dataset.key = key;
+    sel.replaceChildren(...list.map((s, i) => new Option(t("sensor_n", s.mac.slice(-8)), i)));
+  }
+  sel.value = sensor;
+}
+
+function renderStatus() {
+  const offline = failures >= 2;
+  const s = controlSensor();
+  const age = sensorAge(s);
+  const th = status && status.thermostat;
+  $("view-thermo").classList.toggle("dim", offline || rebootAt !== 0);
+  $("reboot").classList.toggle("spin", rebootAt !== 0);
+  $("reboot").disabled = offline && !rebootAt;
+  $("gear-dot").hidden = !(status && status.ap.default_pass) || REMOTE;
+  renderSensorPicker();
+
+  $("temp").textContent = s && s.t != null ? nf1.format(s.t) : "—";
+  $("hum").textContent = s && s.h != null ? pct(nf0.format(s.h)) : "—";
+  $("age").textContent = age == null ? t("waiting_sensor") : t("last_reading", fmtAgo(age));
+  $("bat").textContent = s && s.bat ? pct(s.bat) : "—";
+  $("bat-item").title = s && s.mv ? t("battery_v", nf2.format(s.mv / 1000)) : t("battery");
+  $("sig").textContent = s ? bleQuality(s.rssi) : "—";
+  $("sig-item").title = s ? t("signal_dbm", s.rssi) : t("sensor_signal");
+
+  const fresh = !offline && age != null && age < STALE_S;
+  if (rebootAt) setBadge($("live"), "warn", t("live_reboot"));
+  else if (offline) setBadge($("live"), "crit", t("live_off"));
+  else if (fresh) setBadge($("live"), "ok", t("live_ok"));
+  else if (status) setBadge($("live"), "warn", t("live_wait"));
+
+  const alerts = [];
+  if (offline) {
+    if (!rebootAt) alerts.push(banner("crit", REMOTE ? remoteOfflineText() : t("alert_offline")));  // a restart has its own notice
+  } else if (th && th.released) {
+    alerts.push(th.relay === "nc" ? banner("warn", t("alert_released_nc")) : banner("crit", t("alert_released_no")));
+  } else if (age != null && age >= STALE_S) alerts.push(banner("warn", t("alert_stale", fmtAgo(age))));
+  if (s && s.bat && s.bat <= 20) alerts.push(banner("warn", t("alert_battery", pct(s.bat))));
+  if (s && s.rssi < -85) alerts.push(banner("warn", t("alert_signal")));
+  if (status && status.ap.default_pass && !REMOTE) alerts.push(banner("warn", t("alert_factory"), changePassLink()));
+  $("alerts").replaceChildren(...alerts);
+
+  renderThermo();
+  if (!$("view-thermo").hidden && thSub === "program") renderDayBar();
+  if (!$("view-thermo").hidden && thSub === "advanced") renderAdvanced(false);
+  if (!$("panel-wifi").hidden) renderWifi();
+  if (!$("panel-cloud").hidden && status && status.cloud) {
+    cloudInfo = status.cloud;
+    renderCloud();
+    updateCloudActions();
+    checkChannel(false);
+  }
+  if (!$("panel-cloud").hidden && !$("cls-remote").hidden && Date.now() - remoteAt > 10e3) loadRemote();
+  if (!$("panel-ap").hidden && status) $("uptime-v").textContent = fmtAgo(status.uptime_s + (Date.now() - statusAt) / 1000);
+}
+
+/* ---------- thermostat: Kontrol ---------- */
+
+async function postThermo(body) {
+  const r = await fetch("/api/thermostat", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(t(r.status === 400 ? "err_value" : "err_save2"));
+  const th = await r.json();
+  if (status) status.thermostat = th;
+  thermoAt = thermoDataAt = Date.now();
+  return th;
+}
+
+const modeName = (m) => t("mode_" + m);
+const ctlEdited = () => ctlMode != null || ctlTarget != null;
+const shownMode = (th) => ctlMode || (th ? th.mode : "");
+
+// The target a mode starts from: the device's own when the mode is unchanged.
+function baseTarget(th, mode) {
+  if (!th || mode === "off") return null;
+  if (mode === th.mode) return th.target;
+  if (mode === "manual" || th.program == null) return th.manual;  // the program needs the time
+  return th.program;
+}
+
+function renderThermo() {
+  const th = status && status.thermostat;
+  const badge = $("heat-badge");
+  if (!th) setBadge(badge, "off", "—");
+  else if (th.released) setBadge(badge, th.relay === "nc" ? "warn" : "crit", t(th.relay === "nc" ? "badge_own" : "badge_stopped"));
+  else if (th.heating) setBadge(badge, "heat", t(th.mode === "off" ? "badge_frost" : "badge_heating"));
+  else setBadge(badge, "off", t(th.mode === "off" ? "badge_off" : "badge_idle"));
+
+  const mode = shownMode(th);
+  const target = ctlTarget != null ? ctlTarget : baseTarget(th, mode);
+  const value = $("sp-value");
+  value.classList.toggle("off", target == null);
+  value.classList.toggle("pending", ctlEdited());
+  if (target == null) {
+    value.textContent = th ? t("mode_off") : "—";
+  } else {
+    value.textContent = nf1.format(target);
+    const unit = document.createElement("span");
+    unit.className = "unit";
+    unit.textContent = "°C";
+    value.appendChild(unit);
+  }
+  $("sp-down").disabled = target == null || target <= T_MIN;
+  $("sp-up").disabled = target == null || target >= T_MAX;
+
+  // Rebuilt only when it changes, so its button is not swapped under a finger.
+  let text = "";
+  let resume = false;
+  const hold = th && th.hold_s ? Math.max(0, Math.ceil(th.hold_s - (Date.now() - thermoDataAt) / 1000)) : 0;
+  if (ctlEdited()) text = t("info_pending");
+  else if (hold) text = t("info_hold", t("wait", hold), th.heating);
+  else if (th && th.mode === "off") text = t("info_off");
+  else if (th && th.mode === "manual") text = t("info_manual");
+  else if (th && th.source === "no_clock") text = t("info_noclock");
+  else if (th && th.source === "override" && th.next) {
+    text = t("info_override", whenText(th.next, th.clock));
+    resume = true;
+  } else if (th && th.next) text = t("info_program", whenText(th.next, th.clock), fmtC(th.next.temp));
+  const info = $("sp-info");
+  if (info.dataset.key !== text + resume) {
+    info.dataset.key = text + resume;
+    info.textContent = text;
+    if (resume) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "link-btn";
+      b.textContent = t("back_to_program");
+      b.addEventListener("click", resumeProgram);
+      info.appendChild(b);
+    }
+  }
+  setSeg("seg-thermo", mode);
+  $("ctl-actions").hidden = !ctlEdited();
+}
+
+// − / + and the mode only change the page; Uygula sends them.
+function stepTarget(delta) {
+  const th = status && status.thermostat;
+  const base = baseTarget(th, shownMode(th));
+  if (base == null) return;
+  const next = Math.min(T_MAX, Math.max(T_MIN, Math.round(((ctlTarget != null ? ctlTarget : base) + delta) * 2) / 2));
+  ctlTarget = sameNum(next, base) ? null : next;
+  showMsg("control-msg");
+  renderThermo();
+}
+$("sp-down").addEventListener("click", () => stepTarget(-0.5));
+$("sp-up").addEventListener("click", () => stepTarget(0.5));
+onSeg("seg-thermo", (mode) => {
+  const th = status && status.thermostat;
+  ctlMode = th && mode === th.mode ? null : mode;
+  ctlTarget = null;  // − / + start again from the new mode's target
+  showMsg("control-msg");
+  renderThermo();
+});
+$("ctl-discard").addEventListener("click", () => {
+  ctlMode = null;
+  ctlTarget = null;
+  renderThermo();
+});
+$("ctl-apply").addEventListener("click", async () => {
+  const th = status && status.thermostat;
+  if (!th || !ctlEdited()) return;
+  const mode = shownMode(th);
+  const body = {};
+  const lines = [];
+  if (ctlMode) {
+    body.mode = ctlMode;
+    lines.push(t("conf_mode", modeName(th.mode), modeName(ctlMode)));
+  }
+  if (ctlTarget != null) {
+    body.target = ctlTarget;
+    lines.push(mode === "program" && th.next
+      ? t("conf_override", whenText(th.next, th.clock), fmtC(ctlTarget))
+      : t("conf_target", fmtC(baseTarget(th, mode)), fmtC(ctlTarget)));
+  }
+  if (!(await confirmDialog(t("sure"), lines.join(" "), t("yes_apply")))) return;
+  $("ctl-apply").disabled = true;
+  try {
+    await postThermo(body);
+    ctlMode = null;
+    ctlTarget = null;
+    flash("control-msg", t("applied"));
+  } catch (err) {
+    showMsg("control-msg", "crit", errorText(err));
+  }
+  $("ctl-apply").disabled = false;
+  renderThermo();
+});
+
+async function resumeProgram() {
+  if (!(await confirmDialog(t("sure"), t("conf_resume"), t("yes_resume")))) return;
+  try {
+    await postThermo({ resume: true });
+    flash("control-msg", t("applied"));
+  } catch (err) {
+    showMsg("control-msg", "crit", errorText(err));
+  }
+  renderThermo();
+}
+
+/* ---------- thermostat: Program ---------- */
+
+const cloneWeek = (days) => days.map((d) => d.map((s) => s.slice()));
+const programEdited = () => sched != null && JSON.stringify(sched) !== JSON.stringify(schedEdit);
+const clampT = (v) => Math.min(T_MAX, Math.max(T_MIN, v));
+
+async function openProgram() {
+  if (!programEdited()) {
+    try {
+      const d = await (await fetch("/api/schedule", { cache: "no-store" })).json();
+      sched = d.days;
+      schedEdit = cloneWeek(sched);
+    } catch (e) {
+      if (!sched) { showMsg("prog-msg", "crit", t("prog_load_fail")); return; }
+    }
+  }
+  if (schedDay < 0) {
+    const clock = status && status.thermostat && status.thermostat.clock;
+    schedDay = clock ? clock.day : (new Date().getDay() + 6) % 7;
+  }
+  renderProgram();
+}
+
+function renderProgram() {
+  if (!schedEdit) return;
+  const clock = status && status.thermostat && status.thermostat.clock;
+  for (const b of $("days").querySelectorAll("button")) {
+    const d = Number(b.dataset.day);
+    b.setAttribute("aria-pressed", String(d === schedDay));
+    b.classList.toggle("today", !!clock && clock.day === d);
+  }
+  renderDayBar();
+  renderSlots();
+  $("prog-confirm").hidden = !programEdited();
+}
+
+// The selected day as a 24-hour bar; darker means warmer.
+function renderDayBar() {
+  if (!schedEdit || schedDay < 0) return;
+  const day = schedEdit[schedDay];
+  const before = schedEdit[(schedDay + 6) % 7];
+  const temps = schedEdit.flat().map((s) => s[1]);
+  const lo = Math.min(...temps);
+  const hi = Math.max(...temps);
+  const spans = [];
+  let start = 0;
+  let temp = before[before.length - 1][1];  // the previous evening's target lasts until the first period
+  for (const [minute, tmp] of day) {
+    if (minute > start) spans.push([start, minute, temp]);
+    start = minute;
+    temp = tmp;
+  }
+  spans.push([start, 1440, temp]);
+  const els = spans.map(([a, b, tmp]) => {
+    const el = document.createElement("div");
+    el.className = "seg";
+    el.style.flex = String(b - a);
+    el.style.background = "rgba(var(--temp-rgb), " + (0.16 + 0.6 * (hi > lo ? (tmp - lo) / (hi - lo) : 0.5)).toFixed(2) + ")";
+    el.title = hhmm(a) + "–" + hhmm(b) + " · " + fmtC(tmp);
+    if (b - a >= 130) el.textContent = nf1.format(tmp) + "°";
+    return el;
+  });
+  const clock = status && status.thermostat && status.thermostat.clock;
+  if (clock && clock.day === schedDay) {
+    const now = document.createElement("div");
+    now.className = "now";
+    now.style.left = (clock.min / 14.4) + "%";
+    now.title = t("now");
+    els.push(now);
+  }
+  $("day-bar").replaceChildren(...els);
+}
+
+function renderSlots() {
+  const day = schedEdit[schedDay];
+  const rows = day.map((slot, i) => {
+    const row = document.createElement("div");
+    row.className = "slot";
+    const time = document.createElement("input");
+    time.type = "time";
+    time.className = "input";
+    time.step = 300;
+    time.value = hhmm(slot[0]);
+    time.setAttribute("aria-label", t("slot_aria", t("days")[schedDay], i + 1));
+    time.addEventListener("change", () => {
+      const m = /^(\d\d):(\d\d)/.exec(time.value);
+      if (m) {
+        slot[0] = Number(m[1]) * 60 + Number(m[2]);
+        day.sort((a, b) => a[0] - b[0]);
+      }
+      renderProgram();
+    });
+    const value = document.createElement("span");
+    value.className = "temp-value";
+    const minus = iconButton("minus", t("temp_down"), () => stepSlot(-0.5));
+    const plus = iconButton("plus", t("temp_up"), () => stepSlot(0.5));
+    const paint = () => {
+      value.textContent = fmtC(slot[1]);
+      minus.disabled = slot[1] <= T_MIN;
+      plus.disabled = slot[1] >= T_MAX;
+    };
+    // Updated in place, so quick taps keep landing on the same buttons.
+    const stepSlot = (delta) => {
+      slot[1] = clampT(slot[1] + delta);
+      paint();
+      renderDayBar();
+      $("prog-confirm").hidden = !programEdited();
+    };
+    paint();
+    const step = document.createElement("div");
+    step.className = "temp-step";
+    step.append(minus, value, plus);
+    const del = iconButton("trash", t("del_time"), () => { day.splice(i, 1); renderProgram(); });
+    del.disabled = day.length <= 1;
+    row.append(time, step, del);
+    return row;
+  });
+  $("slots").replaceChildren(...rows);
+  $("slot-add").disabled = day.length >= MAX_SLOTS;
+}
+
+for (const b of $("days").querySelectorAll("button")) {
+  b.addEventListener("click", () => { schedDay = Number(b.dataset.day); renderProgram(); });
+}
+$("slot-add").addEventListener("click", () => {
+  const day = schedEdit[schedDay];
+  if (day.length >= MAX_SLOTS) return;
+  const last = day[day.length - 1];
+  // An hour after the last period, or the nearest free half hour before that.
+  let minute = Math.min(last[0] + 60, 23 * 60 + 30);
+  while (minute > 0 && day.some((s) => s[0] === minute)) minute -= 30;
+  day.push([minute, last[1]]);
+  day.sort((a, b) => a[0] - b[0]);
+  renderProgram();
+});
+const COPY_TO = { weekdays: [0, 1, 2, 3, 4], weekend: [5, 6], all: [0, 1, 2, 3, 4, 5, 6] };
+for (const b of document.querySelectorAll("[data-copy]")) {
+  b.addEventListener("click", () => {
+    for (const d of COPY_TO[b.dataset.copy]) if (d !== schedDay) schedEdit[d] = schedEdit[schedDay].map((s) => s.slice());
+    renderProgram();
+    flash("prog-msg", t("copied", t("days")[schedDay], b.dataset.copy));
+  });
+}
+$("prog-discard").addEventListener("click", () => {
+  schedEdit = cloneWeek(sched);
+  renderProgram();
+  showMsg("prog-msg");
+});
+$("prog-apply").addEventListener("click", async () => {
+  for (let d = 0; d < 7; d++) {
+    const day = schedEdit[d];
+    if (day.some((s, i) => i > 0 && s[0] === day[i - 1][0])) {
+      schedDay = d;
+      renderProgram();
+      showMsg("prog-msg", "crit", t("dup_time", t("days")[d]));
+      return;
+    }
+  }
+  if (!(await confirmDialog(t("sure"), t("conf_program"), t("yes_apply")))) return;
+  $("prog-apply").disabled = true;
+  try {
+    const r = await fetch("/api/schedule", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ days: schedEdit }) });
+    if (!r.ok) throw new Error(t("prog_fail"));
+    sched = (await r.json()).days;
+    schedEdit = cloneWeek(sched);
+    renderProgram();
+    flash("prog-msg", t("applied"));
+    fetchStatus();
+  } catch (err) {
+    showMsg("prog-msg", "crit", errorText(err));
+  }
+  $("prog-apply").disabled = false;
+});
+
+/* ---------- thermostat: Gelişmiş ---------- */
+
+const roundTenth = (v) => Math.round(v * 10) / 10;
+
+function renderAdvanced(reset) {
+  const th = status && status.thermostat;
+  if (!th) return;
+  if (reset || advHyst == null) {
+    advHyst = th.hysteresis;
+    advSensor = th.sensor;
+    advDwell = th.dwell;
+  }
+  $("dwell-value").textContent = t("dwell_value", advDwell);
+  $("dwell-down").disabled = advDwell <= D_MIN;
+  $("dwell-up").disabled = advDwell >= D_MAX;
+  $("dwell-default").hidden = advDwell === D_DEFAULT;
+  $("hyst-value").textContent = fmtC(advHyst);
+  $("hyst-down").disabled = advHyst <= H_MIN + 1e-6;
+  $("hyst-up").disabled = advHyst >= H_MAX - 1e-6;
+  $("hyst-default").hidden = sameNum(advHyst, H_DEFAULT);
+  const example = th.mode !== "off" ? th.target : 21;
+  $("hyst-help").textContent = t("hyst_help", fmtC(example), nf12.format(example - advHyst / 2), nf12.format(example + advHyst / 2));
+
+  const sensors = status.sensors;
+  const many = sensors.length > 1;
+  $("adv-sensor-field").hidden = !many;
+  $("adv-sensor-row").hidden = many;
+  $("adv-sensor-v").textContent = th.sensor || (sensors[0] ? sensors[0].mac : t("not_found"));
+  const sel = $("adv-sensor");
+  const key = lang + sensors.map((s) => s.mac).join();
+  if (many && sel.dataset.key !== key) {  // rebuilding would close an open list
+    sel.dataset.key = key;
+    sel.replaceChildren(...sensors.map((s) => new Option(s.mac + (s.t != null ? " · " + fmtC(s.t) : ""), s.mac)));
+  }
+  if (many) sel.value = advSensor;
+
+  const nc = th.relay === "nc";
+  $("relay-v").textContent = t(nc ? "relay_nc" : "relay_no");
+  $("relay-help").textContent = t("relay_help", nc);
+  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell && (!many || advSensor === th.sensor);
+}
+
+$("hyst-down").addEventListener("click", () => { advHyst = Math.max(H_MIN, roundTenth(advHyst - 0.1)); renderAdvanced(false); });
+$("hyst-up").addEventListener("click", () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
+$("hyst-default").addEventListener("click", () => { advHyst = H_DEFAULT; renderAdvanced(false); });
+$("dwell-down").addEventListener("click", () => { advDwell = Math.max(D_MIN, advDwell - 1); renderAdvanced(false); });
+$("dwell-up").addEventListener("click", () => { advDwell = Math.min(D_MAX, advDwell + 1); renderAdvanced(false); });
+$("dwell-default").addEventListener("click", () => { advDwell = D_DEFAULT; renderAdvanced(false); });
+$("adv-sensor").addEventListener("change", (e) => { advSensor = e.target.value; renderAdvanced(false); });
+$("adv-discard").addEventListener("click", () => { renderAdvanced(true); showMsg("adv-msg"); });
+$("adv-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const th = status.thermostat;
+  const body = {};
+  const changes = [];
+  if (!sameNum(advHyst, th.hysteresis)) {
+    body.hysteresis = advHyst;
+    changes.push(t("conf_hyst", fmtC(th.hysteresis), fmtC(advHyst)));
+  }
+  if (advDwell !== th.dwell) {
+    body.dwell = advDwell;
+    changes.push(t("conf_dwell", th.dwell, advDwell));
+  }
+  if (advSensor && advSensor !== th.sensor) {
+    body.sensor = advSensor;
+    changes.push(t("conf_sensor", advSensor));
+  }
+  if (!changes.length) return;
+  if (!(await confirmDialog(t("sure"), changes.join(" ") + t("conf_now"), t("yes_apply")))) return;
+  $("adv-save").disabled = true;
+  try {
+    await postThermo(body);
+    renderAdvanced(true);
+    flash("adv-msg", t("applied"));
+  } catch (err) {
+    showMsg("adv-msg", "crit", errorText(err));
+  }
+  $("adv-save").disabled = false;
+});
+
+/* ---------- thermostat: Geçmiş ---------- */
+
+let histSource = "";      // where hist came from: "cloud" or "device"
+let histCloudFail = false;
+
+// The device keeps the last 24 hours since its last start, one sample a minute.
+async function fetchDeviceHistory() {
+  const r = await fetch("/api/history?sensor=" + sensor + "&n=1440", { cache: "no-store" });
+  if (!r.ok) throw new Error(r.status);
+  const d = await r.json();
+  const n = d.t.length;
+  const newest = Date.now() - d.newest_age_s * 1000;
+  return {
+    times: d.t.map((_, i) => newest - (n - 1 - i) * d.period_s * 1000),
+    t: d.t, h: d.h, sp: d.sp || [], on: d.on || [], period: d.period_s * 1000,
+  };
+}
+
+// ThingSpeak keeps every minute for good. It returns at most 8000 entries per
+// request, so 7 and 30 days come averaged, in parallel slices of 5 days.
+async function fetchCloudHistory(c) {
+  const base = "https://api.thingspeak.com/channels/" + c.channel + "/feeds.json?round=2&timezone=UTC" +
+    (c.read_key ? "&api_key=" + c.read_key : "");
+  const utc = (ms) => encodeURIComponent(new Date(ms).toISOString().slice(0, 19).replace("T", " "));
+  const minutes = rangeH <= 24 ? 1 : rangeH <= 168 ? 10 : 60;  // per point
+  const urls = [];
+  if (rangeH <= 24) {
+    urls.push(base + "&minutes=" + rangeH * 60);
+  } else {
+    const end = Date.now();
+    const begin = end - rangeH * HOUR;
+    for (let from = begin; from < end; from += 120 * HOUR) {
+      urls.push(base + "&average=" + minutes + "&start=" + utc(from) + "&end=" + utc(Math.min(end, from + 120 * HOUR)));
+    }
+  }
+  const parts = await Promise.all(urls.map(async (u) => {
+    const r = await fetch(u, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }));
+  // ThingSpeak drops values for fields the channel hasn't turned on.
+  if (!(parts[0].channel || {}).field1) throw new Error("field1");
+  const feeds = parts.flatMap((p) => p.feeds || []);
+  const num = (v) => (v == null || v === "" || isNaN(v) ? null : Number(v));
+  return {
+    times: feeds.map((f) => Date.parse(f.created_at)),
+    t: feeds.map((f) => num(f.field1)),
+    h: feeds.map((f) => num(f.field2)),
+    on: feeds.map((f) => num(f.field3)),  // 0 or 1 a minute, a share of the time when averaged; null unknown
+    sp: feeds.map((f) => num(f.field4)),
+    period: minutes * 60e3,
+  };
+}
+
+const cloudOn = () => !!(status && status.cloud && status.cloud.enabled && status.cloud.channel);
+// The cloud has the control sensor's samples only.
+function isControlSensor(i) {
+  const list = status ? status.sensors : [];
+  const mac = status && status.thermostat && status.thermostat.sensor;
+  return !mac || !list[i] || list[i].mac === mac;
+}
+
+async function fetchHistory() {
+  let next = null;
+  let source = "device";
+  histCloudFail = false;
+  if (cloudOn() && isControlSensor(sensor)) {
+    try {
+      next = await fetchCloudHistory(status.cloud);
+      source = "cloud";
+    } catch (e) {
+      histCloudFail = e.message === "field1" ? "field1" : "fail";
+    }
+  }
+  if (!next && !REMOTE) {
+    try {
+      next = await fetchDeviceHistory();
+    } catch (e) {
+      /* keep the previous frame */
+    }
+  }
+  if (next) {
+    hist = next;
+    histSource = source;
+  }
+  renderRanges();
+  renderChart();
+  renderTable();
+}
+
+// 7 and 30 days need the cloud; the device holds 24 hours.
+function renderRanges() {
+  const long = histSource === "cloud";
+  for (const b of $("seg-range").querySelectorAll("button")) {
+    if (Number(b.dataset.value) > 24) b.hidden = !long;
+  }
+  if (!long && histSource && rangeH > 24) {
+    rangeH = 24;
+    setSeg("seg-range", "24");
+  }
+  $("hist-source").textContent = !histSource ? (REMOTE ? t("hist_remote_off") : "") : histSource === "cloud" ? t("hist_cloud")
+    : histCloudFail ? t(histCloudFail === "field1" ? "hist_cloud_nofield" : "hist_cloud_fail") : t("hist_device");
+}
+
+function visibleRange() {
+  const t1 = Date.now();
+  return [t1 - rangeH * HOUR, t1];
+}
+
+function visibleIndexes() {
+  const out = [];
+  if (!hist) return out;
+  const [t0] = visibleRange();
+  for (let i = 0; i < hist.times.length; i++) if (hist.times[i] >= t0) out.push(i);
+  return out;
+}
+
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+}
+
+function el(name, attrs, parent) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function renderLegend(withTarget, withBoiler) {
+  const item = (keyClass, color, text) => {
+    const span = document.createElement("span");
+    const key = document.createElement("span");
+    key.className = "key" + (keyClass ? " " + keyClass : "");
+    if (color) key.style.background = color;
+    span.append(key, text);
+    return span;
+  };
+  const m = MEASURES[measure];
+  const items = [item("", m.color, m.name())];
+  if (withTarget) items.push(item("dash", "", t("target")));
+  if (withBoiler) items.push(item("band", "var(--temp)", t("boiler_ran")));
+  $("legend").replaceChildren(...items);
+}
+
+function renderChart() {
+  const svg = $("chart");
+  const m = MEASURES[measure];
+  // ThingSpeak has the target only if the channel has a field 4 for it.
+  const showTarget = measure === "temp" && !!hist && hist.sp.some((v) => v != null);
+  const showBoiler = !!hist && hist.on.some((v) => v != null);  // field 3 likewise
+  const W = Math.max(Math.round(svg.getBoundingClientRect().width), 200);
+  const H = 210;
+  const pad = { l: 44, r: 48, t: 10, b: 40 };
+  const [t0, t1] = visibleRange();
+  const x = (tm) => pad.l + (tm - t0) / (t1 - t0) * (W - pad.l - pad.r);
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.replaceChildren();
+  geo = null;
+  renderLegend(showTarget, showBoiler);
+
+  const base = H - pad.b;
+  const stepMs = (rangeH <= 1 ? 0.25 : rangeH <= 6 ? 1 : rangeH <= 24 ? 4 : rangeH <= 168 ? 24 : 120) * HOUR;
+  const label = rangeH > 24 ? fmtDay : fmtTime;
+  const tz = new Date().getTimezoneOffset() * 60e3;
+  for (let tm = Math.ceil((t0 - tz) / stepMs) * stepMs + tz; tm <= t1; tm += stepMs) {
+    const px = x(tm);
+    if (px < pad.l + 16 || px > W - pad.r - 4) continue;
+    el("text", { x: px, y: H - 4, "text-anchor": "middle", class: "tick" }, svg).textContent = label(tm);
+  }
+  el("line", { x1: pad.l, x2: W - pad.r, y1: base + 0.5, y2: base + 0.5, class: "axis" }, svg);
+
+  // Heating lane under the plot: one bar per run of minutes with the boiler on.
+  const laneY = base + 7;
+  el("rect", { x: pad.l, y: laneY, width: W - pad.l - pad.r, height: 8, rx: 2, class: "lane-track" }, svg);
+  el("text", { x: pad.l - 6, y: laneY + 7.5, "text-anchor": "end", class: "tick" }, svg).textContent = t("boiler");
+  const idx = visibleIndexes();
+  const period = hist ? hist.period : 60e3;  // a sample covers the period before it
+  let runStart = null;
+  for (let k = 0; k <= idx.length; k++) {
+    const i = idx[k];
+    const share = k < idx.length ? hist.on[i] || 0 : 0;
+    const full = share >= 0.999;
+    if (full && runStart == null) runStart = i;
+    if (!full && runStart != null) {
+      const a = Math.max(pad.l, x(hist.times[runStart] - period));
+      const b = x(hist.times[idx[k - 1]]);
+      el("rect", { x: a, y: laneY, width: Math.max(b - a, 1.5), height: 8, rx: 2, class: "lane-on" }, svg);
+      runStart = null;
+    }
+    if (share > 0 && !full) {
+      const a = Math.max(pad.l, x(hist.times[i] - period));
+      el("rect", { x: a, y: laneY, width: Math.max(x(hist.times[i]) - a, 1.5), height: 8, class: "lane-on",
+        "fill-opacity": (0.2 + 0.8 * share).toFixed(2) }, svg);
+    }
+  }
+
+  const vals = idx.map((i) => hist[m.key][i]).filter((v) => v != null);
+  if (vals.length < 2) {
+    el("text", { x: (pad.l + W - pad.r) / 2, y: base / 2, "text-anchor": "middle", class: "empty" }, svg)
+      .textContent = t("chart_collecting");
+    $("range-note").textContent = "";
+    svg.setAttribute("aria-label", t("chart_no_data", m.name()));
+    return;
+  }
+
+  const targets = showTarget ? idx.map((i) => hist.sp[i]).filter((v) => v != null) : [];
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  let lo = Math.min(min, ...targets);
+  let hi = Math.max(max, ...targets);
+  if (hi - lo < m.minSpan) {
+    const mid = (hi + lo) / 2;
+    lo = mid - m.minSpan / 2;
+    hi = mid + m.minSpan / 2;
+  }
+  const step = niceStep((hi - lo) / 4);
+  lo = Math.floor(lo / step) * step;
+  hi = Math.ceil(hi / step) * step;
+  const y = (v) => pad.t + (hi - v) / (hi - lo) * (base - pad.t);
+  const dec = step < 1 ? 1 : 0;
+  const ticks = Math.round((hi - lo) / step);
+  for (let k = 0; k <= ticks; k++) {
+    const v = lo + k * step;
+    const py = Math.round(y(v)) + 0.5;
+    if (k > 0) el("line", { x1: pad.l, x2: W - pad.r, y1: py, y2: py, class: "grid" }, svg);
+    el("text", { x: pad.l - 8, y: py + 4, "text-anchor": "end", class: "tick" }, svg)
+      .textContent = v.toLocaleString(t("locale"), { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+
+  // target as a dashed step line
+  if (showTarget) {
+    let d = "";
+    let prev = null;
+    let prevT = null;
+    for (const i of idx) {
+      const v = hist.sp[i];
+      if (v == null) { prev = null; continue; }
+      if (prevT != null && hist.times[i] - prevT > 2.5 * period) prev = null;
+      prevT = hist.times[i];
+      const px = x(hist.times[i]).toFixed(1);
+      const py = y(v).toFixed(1);
+      d += prev == null ? "M" + px + "," + py : "H" + px + "V" + py;
+      prev = v;
+    }
+    if (d) el("path", { d: d, class: "target-line" }, svg);
+  }
+
+  // line and its soft area, broken where samples are missing
+  let line = "";
+  let area = "";
+  let run = [];
+  const flush = () => {
+    if (run.length > 1) {
+      const pts = run.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join("L");
+      line += "M" + pts;
+      area += "M" + run[0][0].toFixed(1) + "," + base + "L" + pts + "L" + run[run.length - 1][0].toFixed(1) + "," + base + "Z";
+    }
+    run = [];
+  };
+  let prevT = null;
+  for (const i of idx) {
+    const v = hist[m.key][i];
+    if (v == null || (prevT != null && hist.times[i] - prevT > 2.5 * period)) flush();
+    if (v != null) run.push([x(hist.times[i]), y(v)]);
+    prevT = v == null ? null : hist.times[i];
+  }
+  flush();
+  el("path", { d: area, fill: m.color, class: "area" }, svg);
+  el("path", { d: line, stroke: m.color, class: "line" }, svg);
+
+  // end dot with the latest value
+  let last = idx.length - 1;
+  while (last >= 0 && hist[m.key][idx[last]] == null) last--;
+  if (last >= 0) {
+    const i = idx[last];
+    const cx = x(hist.times[i]);
+    const cy = y(hist[m.key][i]);
+    el("circle", { cx: cx, cy: cy, r: 4, fill: m.color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    el("text", { x: cx + 8, y: cy + 4, class: "end-label" }, svg).textContent = nf2.format(hist[m.key][i]);
+  }
+
+  // hover layer
+  const cross = el("g", { visibility: "hidden" }, svg);
+  el("line", { y1: pad.t, y2: laneY + 8, class: "cross" }, cross);
+  el("circle", { r: 4, fill: m.color, stroke: "var(--surface)", "stroke-width": 2 }, cross);
+  geo = { x: x, y: y, cross: cross };
+
+  const heatMin = Math.round(idx.reduce((sum, i) => sum + (hist.on[i] || 0), 0) * period / 60e3);
+  const heatKnown = idx.some((i) => hist.on[i] != null);
+  const heatText = !heatKnown ? "" : heatMin ? t("heat_ran", t("minutes", heatMin)) : t("heat_none");
+  $("range-note").textContent = t("range_note", nf2.format(min), nf2.format(max), heatText);
+  svg.setAttribute("aria-label", t("chart_aria", m.name(), t("range_text", rangeH), m.fmt(min), m.fmt(max),
+    last >= 0 ? m.fmt(hist[m.key][idx[last]]) : "", heatText));
+  if (hoverIdx != null && hoverIdx < hist.times.length) showHover(hoverIdx);
+}
+
+/* hover: crosshair snapped to the nearest sample, one tooltip with every value */
+
+function nearestIndex(clientX) {
+  const idx = visibleIndexes();
+  if (!idx.length || !geo) return null;
+  const px = clientX - $("chart").getBoundingClientRect().left;
+  let best = null;
+  let bestD = Infinity;
+  for (const i of idx) {
+    const d = Math.abs(geo.x(hist.times[i]) - px);
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+function showHover(i) {
+  if (!geo) return;
+  hoverIdx = i;
+  const v = hist[MEASURES[measure].key][i];
+  const px = geo.x(hist.times[i]);
+  const [line, dot] = geo.cross.children;
+  line.setAttribute("x1", px);
+  line.setAttribute("x2", px);
+  dot.setAttribute("cx", px);
+  dot.setAttribute("cy", v == null ? -99 : geo.y(v));
+  geo.cross.setAttribute("visibility", "visible");
+
+  $("tt-time").textContent = fmtDateTime(hist.times[i]);
+  $("tt-temp").textContent = hist.t[i] == null ? t("no_data") : MEASURES.temp.fmt(hist.t[i]);
+  $("tt-hum").textContent = hist.h[i] == null ? t("no_data") : MEASURES.hum.fmt(hist.h[i]);
+  $("tt-sp").textContent = hist.sp[i] == null ? "—" : fmtC(hist.sp[i]);
+  $("tt-on").textContent = heatText(hist.on[i], "ran");
+  const tip = $("tooltip");
+  const card = tip.parentElement.getBoundingClientRect();
+  const svgBox = $("chart").getBoundingClientRect();
+  const left = svgBox.left - card.left + px;
+  tip.style.display = "block";
+  const w = tip.offsetWidth;
+  tip.style.left = (left + 12 + w > card.width ? left - 12 - w : left + 12) + "px";
+  tip.style.top = (svgBox.top - card.top + 8) + "px";
+}
+
+// "çalıştı" / "kapalı", or the share of an averaged sample: "%40"
+function heatText(share, onKey) {
+  if (share == null) return "—";
+  return share >= 0.999 ? t(onKey) : share > 0 ? pct(Math.round(share * 100)) : t("off_lc");
+}
+
+function hideHover() {
+  hoverIdx = null;
+  $("tooltip").style.display = "none";
+  if (geo) geo.cross.setAttribute("visibility", "hidden");
+}
+
+const chart = $("chart");
+chart.addEventListener("pointermove", (e) => { const i = nearestIndex(e.clientX); if (i != null) showHover(i); });
+chart.addEventListener("pointerdown", (e) => { const i = nearestIndex(e.clientX); if (i != null) showHover(i); });
+chart.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hideHover(); });
+chart.addEventListener("blur", hideHover);
+chart.addEventListener("keydown", (e) => {
+  const idx = visibleIndexes();
+  if (!idx.length) return;
+  let pos = hoverIdx == null ? idx.length - 1 : Math.max(0, idx.indexOf(hoverIdx));
+  if (e.key === "ArrowLeft") pos = Math.max(0, pos - 1);
+  else if (e.key === "ArrowRight") pos = Math.min(idx.length - 1, pos + 1);
+  else if (e.key === "Home") pos = 0;
+  else if (e.key === "End") pos = idx.length - 1;
+  else if (e.key === "Escape") { hideHover(); return; }
+  else return;
+  e.preventDefault();
+  showHover(idx[pos]);
+});
+document.addEventListener("pointerdown", (e) => { if (!e.target.closest("#chart")) hideHover(); });
+
+/* table view & CSV */
+
+function renderTable() {
+  if ($("table-wrap").hidden) return;
+  const idx = visibleIndexes();
+  const step = Math.max(1, Math.ceil(idx.length / 150));
+  const rows = [];
+  for (let k = idx.length - 1; k >= 0; k -= step) {
+    const i = idx[k];
+    const tr = document.createElement("tr");
+    for (const text of [fmtDateTime(hist.times[i]),
+                        hist.t[i] == null ? "—" : nf2.format(hist.t[i]),
+                        hist.h[i] == null ? "—" : nf2.format(hist.h[i]),
+                        hist.sp[i] == null ? "—" : nf1.format(hist.sp[i]),
+                        heatText(hist.on[i], "on_lc")]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+    rows.push(tr);
+  }
+  $("table-body").replaceChildren(...rows);
+}
+
+function downloadCsv() {
+  if (!hist || !hist.times.length) return;
+  const stamp = (ms) => {
+    const d = new Date(ms);
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  };
+  const num = (v) => (v == null ? "" : v.toFixed(2).replace(".", ","));
+  // Semicolons and decimal commas open directly in Turkish and Russian Excel.
+  let csv = "﻿" + t("csv_head") + "\r\n";
+  for (let i = 0; i < hist.times.length; i++) {
+    csv += stamp(hist.times[i]) + ";" + num(hist.t[i]) + ";" + num(hist.h[i]) + ";" + num(hist.sp[i]) + ";" +
+      num(hist.on[i]).replace(",00", "") + "\r\n";
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "thermcon-" + stamp(Date.now()).replace(/[ :]/g, "-") + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+onSeg("seg-range", (v) => {
+  rangeH = Number(v);
+  try { localStorage.setItem("range", v); } catch (e) { /* storage blocked */ }
+  hideHover();
+  renderChart();
+  renderTable();
+  if (histSource === "cloud") fetchHistory();
+});
+onSeg("seg-measure", (v) => {
+  measure = v;
+  try { localStorage.setItem("measure", v); } catch (e) { /* storage blocked */ }
+  renderChart();
+});
+$("sensor").addEventListener("change", (e) => {
+  sensor = Number(e.target.value);
+  hist = null;
+  hideHover();
+  fetchHistory();
+});
+$("toggle-table").addEventListener("click", () => {
+  const wrap = $("table-wrap");
+  wrap.hidden = !wrap.hidden;
+  $("toggle-table").setAttribute("aria-expanded", String(!wrap.hidden));
+  $("toggle-table").textContent = t(wrap.hidden ? "table" : "table_hide");
+  renderTable();
+});
+$("csv").addEventListener("click", downloadCsv);
+let resizeTimer = 0;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderChart, 100);
+});
+
+/* ---------- Wi-Fi ---------- */
+
+function renderWifi() {
+  if (!status) return;
+  const w = status.wifi;
+  if (w.connected) setBadge($("wifi-badge"), "ok", t("wifi_connected"));
+  else if (w.ssid) setBadge($("wifi-badge"), "warn", t("wifi_failing"));
+  else setBadge($("wifi-badge"), "off", t("wifi_unset"));
+  $("wifi-ssid-v").textContent = w.ssid || "—";
+  $("wifi-ip-v").textContent = w.connected ? w.ip : "—";
+  $("wifi-rssi-v").textContent = w.connected ? wifiQuality(w.rssi) + " (" + w.rssi + " " + t("dbm") + ")" : "—";
+  const needsSetup = !w.connected;
+  $("wifi-cancel").hidden = needsSetup;
+  if ((needsSetup || wifiFormOpen) && !wifiSaved) openWifiForm();
+  $("wifi-change-row").hidden = !$("wifi-form").hidden;
+}
+
+function openWifiForm() {
+  $("wifi-form").hidden = false;
+  $("wifi-change-row").hidden = true;
+  if (!wifiScanned) { wifiScanned = true; scan(false); }
+}
+
+// The networks of the last scan as options, strongest first.
+function renderNets() {
+  const sel = $("wifi-select");
+  if (!wifiNets) {
+    sel.replaceChildren(new Option(t("scan_fail"), OTHER));
+    return;
+  }
+  const keep = sel.value;
+  const opts = wifiNets.map((n) => new Option(n.ssid + "  ·  " + wifiQuality(n.rssi).toLowerCase() + (n.open ? t("open_net") : ""), n.ssid));
+  opts.push(new Option(t("other_net_opt"), OTHER));
+  sel.replaceChildren(...opts);
+  const saved = status && status.wifi.ssid;
+  if (wifiNets.some((n) => n.ssid === keep) || keep === OTHER) sel.value = keep;
+  else if (saved && wifiNets.some((n) => n.ssid === saved)) sel.value = saved;
+  else sel.value = wifiNets.length ? wifiNets[0].ssid : OTHER;
+}
+
+// The device lists networks when the access point opens; a fresh scan briefly
+// takes the access point off the air, so it only happens on request.
+async function scan(refresh) {
+  const sel = $("wifi-select");
+  $("rescan").disabled = true;
+  $("rescan").classList.add("spin");
+  sel.disabled = true;
+  try {
+    const list = await (await fetch("/api/wifi/scan" + (refresh ? "?refresh=1" : ""), { cache: "no-store" })).json();
+    const best = new Map();
+    for (const n of list) if (!best.has(n.ssid) || best.get(n.ssid).rssi < n.rssi) best.set(n.ssid, n);
+    wifiNets = [...best.values()].sort((a, b) => b.rssi - a.rssi);
+  } catch (e) {
+    wifiNets = null;
+  }
+  renderNets();
+  sel.disabled = false;
+  $("rescan").disabled = false;
+  $("rescan").classList.remove("spin");
+  $("wifi-ssid-field").hidden = sel.value !== OTHER;
+}
+
+$("wifi-select").addEventListener("change", () => {
+  const other = $("wifi-select").value === OTHER;
+  $("wifi-ssid-field").hidden = !other;
+  (other ? $("wifi-ssid") : $("wifi-pass")).focus();
+});
+$("rescan").addEventListener("click", () => scan(true));
+$("wifi-change").addEventListener("click", () => { wifiFormOpen = true; openWifiForm(); });
+$("wifi-cancel").addEventListener("click", () => {
+  wifiFormOpen = false;
+  $("wifi-form").hidden = true;
+  $("wifi-change-row").hidden = false;
+  showMsg("wifi-msg");
+});
+$("wifi-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const sel = $("wifi-select");
+  const ssid = sel.value === OTHER ? $("wifi-ssid").value : sel.value;
+  const pass = $("wifi-pass").value;
+  showMsg("wifi-msg");
+  if (utf8Len(ssid) < 1 || utf8Len(ssid) > 32) { showMsg("wifi-msg", "crit", t("err_ssid")); return; }
+  if (pass.length > 0 && (pass.length < 8 || pass.length > 64)) { showMsg("wifi-msg", "crit", t("err_wifi_pass")); return; }
+  if (!(await confirmDialog(t("sure"), t("conf_wifi", ssid), t("yes_connect")))) return;
+  $("wifi-save").disabled = true;
+  try {
+    await postJson("/api/wifi", { ssid: ssid, pass: pass });
+    wifiSaved = true;
+    showMsg("wifi-msg", "ok", t("wifi_saved", ssid));
+    $("wifi-pass").value = "";
+  } catch (err) {
+    showMsg("wifi-msg", "crit", errorText(err));
+  }
+  $("wifi-save").disabled = false;
+});
+
+/* ---------- AP ---------- */
+
+const showApSub = subtabs("ap", ["status", "network", "security"], (name) => {
+  $("ap-form").hidden = name === "status";
+  showMsg("ap-msg");
+});
+
+// Opens AP › Güvenlik, where the access point (and admin) password is changed.
+function changePassLink() {
+  const a = document.createElement("a");
+  a.href = "/ap";
+  a.textContent = t("change_pass");
+  a.addEventListener("click", (e) => { e.preventDefault(); openSettings("ap"); showApSub("security"); });
+  return a;
+}
+
+function setSecurity(v) { setSeg("seg-security", v); $("sec-help").textContent = t("sec_" + v); }
+function setMode(v) { setSeg("seg-mode", v); $("mode-help").textContent = t("apmode_" + v + "_help"); }
+
+function apEdited() {
+  return apSaved != null && ($("ap-ssid").value !== apSaved.ssid || $("ap-hidden").checked !== apSaved.hidden ||
+    segValue("seg-security") !== apSaved.security || segValue("seg-mode") !== apSaved.mode ||
+    $("ap-pass").value !== "" || $("ap-pass2").value !== "");
+}
+// Vazgeç and Uygula only show while there is something to apply.
+function updateApConfirm() { $("ap-confirm").hidden = !apEdited(); }
+
+function fillApForm() {
+  $("ap-ssid").value = apSaved.ssid;
+  $("ap-hidden").checked = apSaved.hidden;
+  setSecurity(apSaved.security);
+  setMode(apSaved.mode);
+  for (const id of ["ap-pass", "ap-pass2"]) $(id).value = "";
+  updateApConfirm();
+}
+
+onSeg("seg-security", (v) => { setSecurity(v); updateApConfirm(); });
+onSeg("seg-mode", (v) => { setMode(v); updateApConfirm(); });
+$("ap-form").addEventListener("input", updateApConfirm);
+$("ap-form").addEventListener("change", updateApConfirm);
+$("ap-discard").addEventListener("click", () => { fillApForm(); showMsg("ap-msg"); });
+
+function renderApInfo() {
+  const ap = apInfo;
+  if (!ap) return;
+  setBadge($("ap-badge"), ap.active ? "info" : "off", t(ap.active ? "ap_on" : "ap_off"));
+  $("ap-ssid-v").textContent = ap.ssid + (ap.hidden ? t("hidden_suffix") : "");
+  $("ap-sec-v").textContent = SECURITY_NAMES[ap.security];
+  $("ap-mode-v").textContent = t("apmode_" + ap.mode);
+  $("ap-clients-v").textContent = ap.active ? String(ap.clients) : "—";
+  if (status) $("uptime-v").textContent = fmtAgo(status.uptime_s + (Date.now() - statusAt) / 1000);
+  $("sec-dot").hidden = !ap.default_pass;
+  $("ap-warning").replaceChildren(ap.default_pass ? banner("warn", t("ap_factory_warn"), changePassLink()) : "");
+}
+
+async function loadAp() {
+  try {
+    const ap = await (await fetch("/api/ap", { cache: "no-store" })).json();
+    apInfo = ap;
+    apActive = ap.active;
+    renderApInfo();
+    const edited = apEdited();  // keep what the user is typing
+    apSaved = { ssid: ap.ssid, hidden: ap.hidden, security: ap.security, mode: ap.mode };
+    if (edited) updateApConfirm();
+    else fillApForm();
+  } catch (e) {
+    setBadge($("ap-badge"), "off", t("unknown"));
+  }
+}
+
+$("ap-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const settings = { ssid: $("ap-ssid").value, hidden: $("ap-hidden").checked,
+                     security: segValue("seg-security"), mode: segValue("seg-mode") };
+  const pass = $("ap-pass").value;
+  // Errors open the sub-tab holding the field to fix.
+  const fail = (sub, text) => { showApSub(sub); showMsg("ap-msg", "crit", text); };
+  if (utf8Len(settings.ssid) < 1 || utf8Len(settings.ssid) > 32) return fail("network", t("err_ssid"));
+  if (pass !== $("ap-pass2").value) return fail("security", t("err_pass_match"));
+  if (pass.length > 0 && (pass.length < 8 || pass.length > 63)) return fail("security", t("err_ap_pass"));
+  showMsg("ap-msg");
+  const changes = [];
+  if (settings.ssid !== apSaved.ssid) changes.push(t("ch_ssid", settings.ssid));
+  if (settings.hidden !== apSaved.hidden) changes.push(t(settings.hidden ? "ch_hidden" : "ch_visible"));
+  if (settings.mode !== apSaved.mode) changes.push(t(settings.mode === "always" ? "ch_always" : "ch_offline"));
+  if (settings.security !== apSaved.security) changes.push(t("ch_sec", SECURITY_NAMES[settings.security]));
+  if (pass) changes.push(t("ch_pass"));
+  if (apActive) changes.push(t("ch_restart"));
+  if (!(await confirmDialog(t("sure"), changes.join(" "), t("yes_apply")))) return;
+  $("ap-save").disabled = true;
+  try {
+    await postJson("/api/ap", Object.assign({ pass: pass }, settings));
+    apSaved = settings;
+    fillApForm();
+    flash("ap-msg", t("applied"));
+    setTimeout(loadAp, 2500);
+  } catch (err) {
+    showMsg("ap-msg", "crit", errorText(err));
+  }
+  $("ap-save").disabled = false;
+});
+
+/* ---------- Bulut: ThingSpeak ---------- */
+
+let cloudInfo = null;   // ThingSpeak settings and state from the device
+
+function cloudEdited() {
+  return cloudInfo != null && ($("cloud-on").checked !== cloudInfo.enabled ||
+    $("cloud-channel").value.trim() !== (cloudInfo.channel ? String(cloudInfo.channel) : "") ||
+    $("cloud-wkey").value.trim().toUpperCase() !== cloudInfo.write_key ||
+    $("cloud-rkey").value.trim().toUpperCase() !== cloudInfo.read_key);
+}
+function updateCloudActions() { $("cloud-actions").hidden = !cloudEdited(); }
+
+function renderCloud() {
+  const c = cloudInfo;
+  if (!c) return;
+  if (!c.enabled) setBadge($("cloud-badge"), "off", t("cloud_badge_off"));
+  else if (c.error) setBadge($("cloud-badge"), "crit", t("cloud_badge_err"));
+  else if (c.ok_age_s != null) setBadge($("cloud-badge"), "ok", t("cloud_badge_ok"));
+  else setBadge($("cloud-badge"), "warn", t("cloud_badge_wait"));
+  $("cloud-last-v").textContent = c.ok_age_s != null ? t("cloud_ago", fmtAgo(c.ok_age_s)) : "—";
+  $("cloud-sent-v").textContent = String(c.sent);
+  $("cloud-link").href = "https://thingspeak.mathworks.com/channels/" + c.channel;
+  $("cloud-link").hidden = !c.channel;
+  $("cloud-error").replaceChildren(c.enabled && c.error ? banner("crit", t("cloud_err_" + c.error)) : "");
+}
+
+let cloudCheck = null;    // what ThingSpeak says about the channel: {missing: [field numbers]} or {error}
+let cloudChecked = null;  // the channel and read key it was asked about
+
+// ThingSpeak keeps values only in the fields the channel has turned on and drops
+// the rest without an error, so the tab asks which ones the channel has.
+async function checkChannel(force) {
+  const c = cloudInfo;
+  const key = c && c.enabled && c.channel ? c.channel + ":" + c.read_key : "";
+  if (!force && key === cloudChecked) return;
+  cloudChecked = key;
+  cloudCheck = null;
+  renderCloudCheck();
+  if (!key) return;
+  let result = null;
+  try {
+    const r = await fetch("https://api.thingspeak.com/channels/" + c.channel + "/feeds.json?results=0" +
+      (c.read_key ? "&api_key=" + c.read_key : ""), { cache: "no-store" });
+    if (r.status === 404) result = { error: "channel" };
+    else if (r.status === 400) result = { error: "rkey" };
+    else if (r.ok) {
+      const ch = (await r.json()).channel || {};
+      result = { missing: [1, 2, 3, 4].filter((n) => !ch["field" + n]) };
+    }
+  } catch (e) {
+    /* this phone can't reach ThingSpeak now: nothing to tell */
+  }
+  if (key !== cloudChecked) return;  // the settings changed meanwhile
+  cloudCheck = result;
+  renderCloudCheck();
+}
+
+function renderCloudCheck() {
+  const c = cloudCheck;
+  let note = "";
+  if (c && c.error) {
+    note = banner("crit", t("cloud_chk_" + c.error));
+  } else if (c && c.missing.some((n) => n < 4)) {
+    note = banner("warn", t("cloud_chk_missing", c.missing.map((n) => t("cloud_field_" + n)).join(", "), c.missing.length));
+  } else if (c && c.missing.length) {
+    note = document.createElement("p");  // the target line is optional: a quiet note
+    note.className = "help";
+    note.textContent = t("cloud_chk_target");
+  }
+  $("cloud-check").replaceChildren(note);
+}
+
+function fillCloudForm() {
+  $("cloud-on").checked = cloudInfo.enabled;
+  $("cloud-channel").value = cloudInfo.channel ? String(cloudInfo.channel) : "";
+  $("cloud-wkey").value = cloudInfo.write_key;
+  $("cloud-rkey").value = cloudInfo.read_key;
+  updateCloudActions();
+}
+
+async function loadCloud() {
+  try {
+    const c = await (await fetch("/api/cloud", { cache: "no-store" })).json();
+    const edited = cloudEdited();  // keep what the user is typing
+    cloudInfo = c;
+    renderCloud();
+    if (edited) updateCloudActions();
+    else fillCloudForm();
+    checkChannel(true);
+  } catch (e) {
+    setBadge($("cloud-badge"), "off", t("unknown"));
+  }
+}
+
+$("cloud-form").addEventListener("input", updateCloudActions);
+$("cloud-form").addEventListener("change", updateCloudActions);
+$("cloud-discard").addEventListener("click", () => { fillCloudForm(); showMsg("cloud-msg"); });
+$("cloud-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const on = $("cloud-on").checked;
+  const channel = $("cloud-channel").value.trim();
+  const wkey = $("cloud-wkey").value.trim().toUpperCase();
+  const rkey = $("cloud-rkey").value.trim().toUpperCase();
+  const keyOk = (k) => k === "" || /^[A-Z0-9]{16}$/.test(k);
+  if (!/^\d{0,10}$/.test(channel) || Number(channel) > 4294967295 || (on && !Number(channel))) {
+    showMsg("cloud-msg", "crit", t("err_channel"));
+    return;
+  }
+  if (!keyOk(wkey) || !keyOk(rkey) || (on && !wkey)) {
+    showMsg("cloud-msg", "crit", t("err_key"));
+    return;
+  }
+  const changes = [];
+  if (on !== cloudInfo.enabled) changes.push(t(on ? "ch_cloud_on" : "ch_cloud_off"));
+  if (Number(channel) !== cloudInfo.channel || wkey !== cloudInfo.write_key || rkey !== cloudInfo.read_key) {
+    changes.push(t("ch_cloud_cfg"));
+  }
+  if (!(await confirmDialog(t("sure"), changes.join(" "), t("yes_apply")))) return;
+  $("cloud-save").disabled = true;
+  try {
+    const r = await postJson("/api/cloud", { enabled: on, channel: Number(channel) || 0, write_key: wkey, read_key: rkey });
+    cloudInfo = await r.json();
+    fillCloudForm();
+    renderCloud();
+    checkChannel(false);
+    flash("cloud-msg", t("applied"));
+    fetchStatus();
+  } catch (err) {
+    showMsg("cloud-msg", "crit", errorText(err));
+  }
+  $("cloud-save").disabled = false;
+});
+
+/* ---------- Bulut: remote access (EMQX) ---------- */
+
+let remoteInfo = null;  // settings and state from /api/remote, only on the home network
+let remoteAt = 0;       // when it was read
+
+const showCloudSub = subtabs("cl", ["ts", "remote"], (name) => {
+  if (name === "remote") loadRemote();
+  showMsg("remote-msg");
+});
+
+function remoteEdited() {
+  const r = remoteInfo;
+  return r != null && ($("remote-on").checked !== r.enabled || $("remote-host").value.trim() !== r.host ||
+    $("remote-user").value.trim() !== r.user || $("remote-pass").value !== r.password ||
+    $("remote-url").value.trim() !== r.app_url);
+}
+function updateRemoteActions() { $("remote-actions").hidden = !remoteEdited(); }
+
+// The phone's setup link: the remote page with the broker and this device's id,
+// no password; each person signs in once with their own EMQX user.
+function remoteSetupLink(r) {
+  return r.app_url + "#h=" + encodeURIComponent(r.host) + "&p=" + r.ws_port + "&d=" + r.id;
+}
+
+function renderRemote() {
+  const r = remoteInfo;
+  if (!r) return;
+  const kind = { connected: "ok", connecting: "warn", error: "crit", off: "off" }[r.state] || "off";
+  setBadge($("remote-badge"), kind, t("remote_badge_" + r.state));
+  $("remote-uptime-v").textContent = r.connected_s != null ? fmtAgo(r.connected_s) : "—";
+  $("remote-requests-v").textContent = String(r.requests);
+  $("remote-id-v").textContent = r.id;
+  $("remote-error").replaceChildren(r.enabled && r.state === "error" && r.error
+    ? banner("crit", t(L.tr["remote_err_" + r.error] ? "remote_err_" + r.error : "remote_err_connect")) : "");
+  const setup = $("remote-setup");
+  if (r.enabled && r.app_url) {
+    const a = document.createElement("a");
+    a.href = remoteSetupLink(r);
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = t("remote_setup");
+    setup.replaceChildren(a, " · " + t("remote_setup_help"));
+  } else {
+    setup.textContent = r.enabled ? t("remote_no_app") : "";
+  }
+}
+
+function fillRemoteForm() {
+  const r = remoteInfo;
+  $("remote-on").checked = r.enabled;
+  $("remote-host").value = r.host;
+  $("remote-user").value = r.user;
+  $("remote-pass").value = r.password;
+  $("remote-url").value = r.app_url;
+  updateRemoteActions();
+}
+
+async function loadRemote() {
+  remoteAt = Date.now();
+  try {
+    const r = await (await fetch("/api/remote", { cache: "no-store" })).json();
+    const edited = remoteEdited();  // keep what the user is typing
+    remoteInfo = r;
+    renderRemote();
+    if (edited) updateRemoteActions();
+    else fillRemoteForm();
+  } catch (e) {
+    setBadge($("remote-badge"), "off", t("unknown"));
+  }
+}
+
+$("remote-form").addEventListener("input", updateRemoteActions);
+$("remote-form").addEventListener("change", updateRemoteActions);
+$("remote-discard").addEventListener("click", () => { fillRemoteForm(); showMsg("remote-msg"); });
+$("remote-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const r = remoteInfo;
+  const next = {
+    enabled: $("remote-on").checked,
+    host: $("remote-host").value.trim(),
+    user: $("remote-user").value.trim(),
+    password: $("remote-pass").value,
+    app_url: $("remote-url").value.trim(),
+  };
+  if (next.enabled && (!next.host || !next.user || !next.password)) {
+    showMsg("remote-msg", "crit", t("err_remote_fields"));
+    return;
+  }
+  if (next.app_url && !/^https:\/\/\S+$/.test(next.app_url)) {
+    showMsg("remote-msg", "crit", t("err_remote_url"));
+    return;
+  }
+  const changes = [];
+  if (next.enabled !== r.enabled) changes.push(t(next.enabled ? "ch_remote_on" : "ch_remote_off"));
+  if (next.host !== r.host || next.user !== r.user || next.password !== r.password || next.app_url !== r.app_url) {
+    changes.push(t("ch_remote_cfg"));
+  }
+  if (!(await confirmDialog(t("sure"), changes.join(" "), t("yes_apply")))) return;
+  $("remote-save").disabled = true;
+  try {
+    remoteInfo = await (await postJson("/api/remote", next)).json();
+    fillRemoteForm();
+    renderRemote();
+    flash("remote-msg", t("applied"));
+    setTimeout(loadRemote, 3000);  // the connection's outcome
+  } catch (err) {
+    showMsg("remote-msg", "crit", errorText(err));
+  }
+  $("remote-save").disabled = false;
+});
+
+/* ---------- Genel: language ---------- */
+
+function renderLang() {
+  setSeg("seg-lang", langEdit || lang);
+  $("lang-actions").hidden = !langEdit;
+}
+
+// Switches every text on the page; the device keeps the choice for everyone.
+function setLang(next) {
+  lang = next;
+  try { localStorage.setItem("lang", next); } catch (e) { /* storage blocked */ }
+  makeFormats();
+  applyStatic();
+  $("sp-info").dataset.key = "";
+  renderStatus();
+  renderChart();
+  renderTable();
+  if (schedEdit) renderProgram();
+  if (!$("view-thermo").hidden && thSub === "advanced") renderAdvanced(false);
+  if (apSaved) { setSecurity(segValue("seg-security")); setMode(segValue("seg-mode")); }
+  renderApInfo();
+  if (wifiScanned) renderNets();
+  renderCloud();
+  renderCloudCheck();
+  renderRemote();
+  renderToast();
+  renderRanges();
+  renderLang();
+  renderFirmware();
+}
+
+/* ---------- Genel: firmware update over Wi-Fi ---------- */
+
+let fwInfo = null;   // the running firmware, from /api/ota
+let fwFile = null;   // { file, image } chosen for an update, image as read by readImage
+let fwRun = null;    // the update in progress: { phase, loaded, total, xhr }
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// The compile date and time an ESP-IDF image carries ("Oct 26 2026", "09:27:38").
+function fwWhen(date, time) {
+  const d = /^(\w{3}) +(\d+) (\d{4})$/.exec(date || "");
+  const hm = /^(\d+):(\d+)/.exec(time || "");
+  if (!d || !hm || MONTHS.indexOf(d[1]) < 0) return ((date || "") + " " + (time || "")).trim();
+  return new Date(+d[3], MONTHS.indexOf(d[1]), +d[2], +hm[1], +hm[2]).toLocaleString(t("locale"),
+    { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+const fwSize = (bytes) => nf2.format(bytes / 1048576) + NBSP + "MB";
+const fwKb = (bytes) => nf0.format(Math.round(bytes / 1024)) + NBSP + "KB";
+
+// Reads the head of a .bin: an ESP32 image (magic 0xE9, chip 0) whose application
+// description (0xABCD5432 at byte 32) names this project. null if it is not one.
+async function readImage(file) {
+  const b = new Uint8Array(await file.slice(0, 208).arrayBuffer());
+  if (b.length < 208) return null;
+  const u32 = (o) => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
+  const str = (o, n) => new TextDecoder().decode(b.subarray(o, o + n)).replace(/\0[\s\S]*$/, "");
+  if (b[0] !== 0xE9 || (b[12] | b[13] << 8) !== 0 || u32(32) !== 0xABCD5432 || str(80, 32) !== "therm") return null;
+  const build = Array.from(b.subarray(176, 180), (x) => x.toString(16).padStart(2, "0")).join("");
+  return { version: str(48, 32), time: str(112, 16), date: str(128, 16), build: build };
+}
+
+async function loadFirmware() {
+  try {
+    fwInfo = await (await fetch("/api/ota", { cache: "no-store" })).json();
+  } catch (e) {
+    /* the card shows what it has */
+  }
+  renderFirmware();
+}
+
+function renderFirmware() {
+  const f = fwInfo;
+  $("fw-running").textContent = f ? fwWhen(f.date, f.time) : "—";
+  $("fw-build").textContent = f ? f.build + " · " + f.partition : "—";
+  $("fw-state").replaceChildren(!f ? "" : f.pending ? banner("busy", t("fw_pending"))
+    : f.rolled_back ? banner("warn", t("fw_rolled_back")) : "");
+
+  const run = fwRun;
+  $("fw-pick").disabled = !!run;
+  if (fwFile) {
+    const img = fwFile.image;
+    $("fw-file-info").textContent = t("fw_file", fwFile.file.name, fwSize(fwFile.file.size), fwWhen(img.date, img.time)) +
+      (f && img.build === f.build ? " " + t("fw_same") : "");
+  } else {
+    $("fw-file-info").textContent = t("fw_pick_help");
+  }
+  $("fw-actions").hidden = !fwFile && !run;
+  $("fw-start").hidden = !!run;
+  $("fw-cancel").disabled = !!run && run.phase !== "upload";
+
+  $("fw-progress").hidden = !run;
+  if (!run) return;
+  const bar = $("fw-bar");
+  const percent = run.total ? Math.min(100, Math.floor(run.loaded * 100 / run.total)) : 0;
+  bar.classList.toggle("indeterminate", run.phase !== "upload");
+  bar.firstElementChild.style.width = run.phase === "upload" ? percent + "%" : "";
+  bar.setAttribute("aria-valuenow", String(run.phase === "upload" ? percent : 100));
+  $("fw-phase").textContent = t(run.phase === "upload" ? "fw_uploading" : run.phase === "verify" ? "fw_verifying" : "fw_restarting");
+  $("fw-pct").textContent = run.phase === "upload" ? pct(percent) + " · " + fwKb(run.loaded) + " / " + fwKb(run.total) : "";
+}
+
+$("fw-pick").addEventListener("click", () => $("fw-file").click());
+$("fw-file").addEventListener("change", async () => {
+  const file = $("fw-file").files[0];
+  $("fw-file").value = "";  // the same file can be picked again
+  showMsg("fw-msg");
+  fwFile = null;
+  if (file) {
+    const image = await readImage(file).catch(() => null);
+    if (!image) showMsg("fw-msg", "crit", t("fw_err_not_thermcon"));
+    else if (fwInfo && fwInfo.max_size && file.size > fwInfo.max_size) showMsg("fw-msg", "crit", t("fw_err_too_big"));
+    else fwFile = { file: file, image: image };
+  }
+  renderFirmware();
+});
+
+$("fw-cancel").addEventListener("click", () => {
+  if (fwRun) {
+    if (fwRun.phase === "upload") fwRun.xhr.abort();
+    return;
+  }
+  fwFile = null;
+  showMsg("fw-msg");
+  renderFirmware();
+});
+
+function otaFailed(code) {
+  otaBusy = false;
+  fwRun = null;
+  showMsg("fw-msg", "crit", t(L.tr["fw_err_" + code] ? "fw_err_" + code : "fw_err_write_failed"));
+  renderFirmware();
+  fetchStatus();
+}
+
+$("fw-start").addEventListener("click", async () => {
+  if (!fwFile || fwRun) return;
+  const { file, image } = fwFile;
+  if (!(await confirmDialog(t("sure"), t("conf_ota", fwWhen(image.date, image.time)), t("yes_update")))) return;
+  showMsg("fw-msg");
+  const xhr = new XMLHttpRequest();
+  fwRun = { phase: "upload", loaded: 0, total: file.size, xhr: xhr };
+  otaBusy = true;
+  renderFirmware();
+  xhr.open("POST", "/api/ota");
+  xhr.setRequestHeader("Content-Type", "application/octet-stream");
+  xhr.timeout = 300e3;
+  xhr.upload.onprogress = (e) => {
+    if (!fwRun) return;
+    fwRun.loaded = e.loaded;
+    if (e.lengthComputable) fwRun.total = e.total;
+    renderFirmware();
+  };
+  xhr.upload.onload = () => { if (fwRun) { fwRun.phase = "verify"; renderFirmware(); } };
+  xhr.onload = () => {
+    if (xhr.status !== 200) {
+      let code = "write_failed";
+      try { code = JSON.parse(xhr.responseText).error || code; } catch (e) { /* not JSON */ }
+      otaFailed(code);
+      return;
+    }
+    // The device restarts into the new firmware; the page reloads itself when it
+    // sees the new build, and noticeUpdate() tells the outcome from this note.
+    try {
+      sessionStorage.setItem("ota", JSON.stringify({ expect: image.build, from: fwInfo ? fwInfo.build : pageBuild, at: Date.now() }));
+    } catch (e) { /* storage blocked: no message after the restart */ }
+    otaBusy = false;
+    fwFile = null;
+    fwRun.phase = "restart";
+    renderFirmware();
+    rebootAt = Date.now();
+    rebootLimit = 240e3;  // a firmware that fails its check goes back after up to three minutes
+    toast("busy", () => t("fw_restarting"));
+    renderStatus();
+  };
+  xhr.onerror = () => otaFailed("network");
+  xhr.ontimeout = () => otaFailed("network");
+  xhr.onabort = () => otaFailed("canceled");
+  xhr.send(file);
+});
+
+window.addEventListener("beforeunload", (e) => {
+  if (otaBusy) { e.preventDefault(); e.returnValue = ""; }
+});
+
+// After an update the device restarts, maybe twice (new firmware, then back to
+// the old one if it fails its check). The note in sessionStorage survives the
+// page's own reload and says which build to expect.
+function noticeUpdate() {
+  let note = null;
+  try { note = JSON.parse(sessionStorage.getItem("ota")); } catch (e) { /* none */ }
+  if (!note) return;
+  const forget = () => { try { sessionStorage.removeItem("ota"); } catch (e) { /* blocked */ } };
+  if (Date.now() - note.at > 10 * 60e3) { forget(); return; }
+  if (status.uptime_s * 1000 >= Date.now() - note.at) return;  // not restarted since the upload yet
+  fwRun = null;
+  if (status.build === note.expect && status.ota_pending) {
+    toast("busy", () => t("toast_ota_verifying"));
+    return;
+  }
+  forget();
+  if (status.build === note.expect) toast("ok", () => t("toast_ota_done"), 6e3);
+  else toast("crit", () => t("fw_rolled_back"), 15e3);
+  if (!$("panel-general").hidden) loadFirmware();
+}
+
+onSeg("seg-lang", (v) => {
+  langEdit = v === lang ? null : v;
+  showMsg("lang-msg");
+  renderLang();
+});
+$("lang-discard").addEventListener("click", () => { langEdit = null; renderLang(); });
+$("lang-apply").addEventListener("click", async () => {
+  if (!langEdit) return;
+  if (!(await confirmDialog(t("sure"), t("conf_lang", t("lang_" + langEdit)), t("yes_apply")))) return;
+  $("lang-apply").disabled = true;
+  try {
+    await postJson("/api/lang", { lang: langEdit });
+    const next = langEdit;
+    langEdit = null;
+    setLang(next);
+    flash("lang-msg", t("applied"));
+  } catch (err) {
+    showMsg("lang-msg", "crit", errorText(err));
+  }
+  $("lang-apply").disabled = false;
+  renderLang();
+});
+
+/* ---------- start ---------- */
+
+/* ---------- remote: MQTT over WebSocket to EMQX ---------- */
+
+// A small MQTT 3.1.1 client, enough for this page: clean session, QoS 0/1
+// publish and subscribe, keepalive, reconnect with growing pauses.
+const utf8Enc = new TextEncoder();
+const utf8Dec = new TextDecoder();
+const mqttStr = (s) => { const b = utf8Enc.encode(s); return [b.length >> 8, b.length & 255, ...b]; };
+function mqttPacket(type, flags, body) {
+  const len = [];
+  let n = body.length;
+  do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; len.push(d); } while (n > 0);
+  const out = new Uint8Array(1 + len.length + body.length);
+  out[0] = (type << 4) | flags;
+  out.set(len, 1);
+  out.set(body, 1 + len.length);
+  return out;
+}
+
+class Mqtt {
+  constructor(url, clientId, user, pass, handlers) {
+    Object.assign(this, { url, clientId, user, pass, handlers });
+    this.nextId = 1;
+    this.buf = new Uint8Array(0);
+    this.pause = 1000;
+    this.stopped = false;
+    this.connected = false;
+  }
+  open() {
+    clearTimeout(this.retry);
+    this.ws = new WebSocket(this.url, "mqtt");
+    this.ws.binaryType = "arraybuffer";
+    this.ws.onopen = () => {
+      const body = [...mqttStr("MQTT"), 4, 0xC2, 0, 60, ...mqttStr(this.clientId), ...mqttStr(this.user), ...mqttStr(this.pass)];
+      this.ws.send(mqttPacket(1, 0, body));
+    };
+    this.ws.onmessage = (e) => this.receive(new Uint8Array(e.data));
+    this.ws.onclose = () => this.closed();
+    this.ws.onerror = () => { /* onclose follows */ };
+  }
+  closed() {
+    clearInterval(this.ping);
+    const was = this.connected;
+    this.connected = false;
+    this.buf = new Uint8Array(0);
+    if (was) this.handlers.state("connecting");
+    if (this.stopped) return;
+    this.retry = setTimeout(() => this.open(), this.pause);
+    this.pause = Math.min(this.pause * 2, 30e3);
+  }
+  stop() { this.stopped = true; clearTimeout(this.retry); clearInterval(this.ping); if (this.ws) this.ws.close(); }
+  // When the phone wakes up, do not wait out a long pause.
+  nudge() { if (!this.connected && !this.stopped) { this.pause = 1000; this.open(); } }
+  send(packet) { if (this.ws && this.ws.readyState === 1) this.ws.send(packet); }
+  subscribe(topics) {
+    const id = this.nextId++ & 0xffff || 1;
+    const body = [id >> 8, id & 255];
+    for (const [topic, qos] of topics) body.push(...mqttStr(topic), qos);
+    this.send(mqttPacket(8, 2, body));
+  }
+  publish(topic, text, qos, retain) {
+    const body = [...mqttStr(topic)];
+    if (qos) { const id = this.nextId++ & 0xffff || 1; body.push(id >> 8, id & 255); }
+    body.push(...utf8Enc.encode(text));
+    this.send(mqttPacket(3, (qos << 1) | (retain ? 1 : 0), body));
+  }
+  receive(chunk) {
+    const buf = new Uint8Array(this.buf.length + chunk.length);
+    buf.set(this.buf);
+    buf.set(chunk, this.buf.length);
+    let at = 0;
+    while (buf.length - at >= 2) {
+      let len = 0;
+      let mul = 1;
+      let i = at + 1;
+      let byte;
+      do { if (i >= buf.length) { this.buf = buf.slice(at); return; } byte = buf[i++]; len += (byte & 127) * mul; mul *= 128; } while (byte & 128);
+      if (i + len > buf.length) break;
+      this.packet(buf[at] >> 4, buf[at] & 15, buf.subarray(i, i + len));
+      at = i + len;
+    }
+    this.buf = buf.slice(at);
+    this.seen = Date.now();
+  }
+  packet(type, flags, body) {
+    if (type === 2) {  // CONNACK
+      if (body[1] === 0) {
+        this.connected = true;
+        this.pause = 1000;
+        this.seen = Date.now();
+        clearInterval(this.ping);
+        this.ping = setInterval(() => {
+          if (Date.now() - this.seen > 90e3) { this.ws.close(); return; }  // the link died quietly
+          this.send(new Uint8Array([0xC0, 0]));
+        }, 30e3);
+        this.handlers.state("connected");
+      } else {
+        this.stopped = true;  // wrong user or password: retrying will not help
+        this.handlers.state(body[1] === 4 || body[1] === 5 ? "auth" : "refused");
+        this.ws.close();
+      }
+    } else if (type === 3) {  // PUBLISH
+      const qos = (flags >> 1) & 3;
+      const tlen = (body[0] << 8) | body[1];
+      const topic = utf8Dec.decode(body.subarray(2, 2 + tlen));
+      let at = 2 + tlen;
+      if (qos) { this.send(new Uint8Array([0x40, 2, body[at], body[at + 1]])); at += 2; }
+      this.handlers.message(topic, utf8Dec.decode(body.subarray(at)));
+    }
+  }
+}
+
+// The connection to the device: settings from the phone's setup link, the
+// state the device publishes, and requests it answers.
+const remote = {
+  cfg: null,         // { host, port, id }, from the setup link
+  creds: null,       // { user, pass }, typed in once
+  client: null,
+  me: "app-" + Math.random().toString(16).slice(2, 10),
+  online: null,      // the device's last will: false once it dropped off
+  state: null,       // its newest /api/status
+  stateAt: 0,
+  pending: new Map(),
+  topic: (leaf) => "thermcon/" + remote.cfg.id + "/" + leaf,
+};
+
+function loadStored(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+}
+function store(key, value) {
+  try { if (value == null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* blocked */ }
+}
+
+function remoteStart() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get("h") && q.get("d")) {
+    store("remote", { host: q.get("h"), port: Number(q.get("p")) || 8084, id: q.get("d") });
+    history.replaceState(null, "", location.pathname + location.search);  // the link's details stay out of the address
+  }
+  remote.cfg = loadStored("remote");
+  remote.creds = loadStored("remote_login");
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => { /* works without, just not offline */ });
+  }
+  if (!remote.cfg) showLogin("setup");
+  else if (!remote.creds) showLogin("form");
+  else remoteConnect();
+}
+
+function showLogin(mode, error) {
+  $("login").hidden = false;
+  $("login-text").textContent = t(mode === "setup" ? "login_setup" : "login_text");
+  $("login-fields").hidden = mode === "setup";
+  if (remote.creds) $("login-user").value = remote.creds.user;
+  showMsg("login-msg", error ? "crit" : null, error ? t(error) : null);
+}
+
+$("login-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const user = $("login-user").value.trim();
+  const pass = $("login-pass").value;
+  if (!user || !pass) return;
+  remote.creds = { user, pass };
+  $("login-go").disabled = true;
+  remoteConnect(true);
+});
+
+function remoteConnect(signingIn) {
+  if (remote.client) remote.client.stop();
+  const { host, port } = remote.cfg;
+  remote.client = new Mqtt("wss://" + host + ":" + port + "/mqtt", remote.me, remote.creds.user, remote.creds.pass, {
+    state: (st) => {
+      if (st === "connected") {
+        $("login-go").disabled = false;
+        $("login").hidden = true;
+        store("remote_login", remote.creds);
+        $("session-user").textContent = remote.creds.user;
+        remote.client.subscribe([[remote.topic("state"), 0], [remote.topic("online"), 1], [remote.topic("res/" + remote.me), 1]]);
+        watch();
+      } else if (st === "auth" || st === "refused") {
+        $("login-go").disabled = false;
+        store("remote_login", null);
+        showLogin("form", "login_err_auth");
+      }
+      renderStatus();
+    },
+    message: (topic, text) => {
+      if (topic.endsWith("/state")) {
+        try { remote.state = JSON.parse(text); remote.stateAt = Date.now(); } catch (e) { return; }
+        fetchStatus();
+      } else if (topic.endsWith("/online")) {
+        remote.online = text === "1";
+        if (remote.online) watch();
+        renderStatus();
+      } else {
+        let a = null;
+        try { a = JSON.parse(text); } catch (e) { return; }
+        const p = a && remote.pending.get(a.id);
+        if (p) { remote.pending.delete(a.id); clearTimeout(p.timer); p.resolve(a); }
+      }
+    },
+  });
+  remote.client.open();
+  // A first sign-in that cannot reach the server says so instead of spinning.
+  if (signingIn) setTimeout(() => {
+    if (!remote.client.connected && !$("login").hidden) { $("login-go").disabled = false; showMsg("login-msg", "crit", t("login_err_net")); }
+  }, 15e3);
+}
+
+// Asks the device to send its state every few seconds while the page is watched.
+function watch() {
+  if (remote.client && remote.client.connected) remote.client.publish(remote.topic("req"), '{"method":"WATCH"}', 1, false);
+}
+
+function remoteRequest(method, path, body) {
+  return new Promise((resolve, reject) => {
+    if (!remote.client || !remote.client.connected) { reject(new TypeError("offline")); return; }
+    const id = Math.random().toString(16).slice(2, 12);
+    const timer = setTimeout(() => { remote.pending.delete(id); reject(new TypeError("timeout")); }, 12e3);
+    remote.pending.set(id, { resolve, timer });
+    remote.client.publish(remote.topic("req"), JSON.stringify({ id, from: remote.me, method, path, body }), 1, false);
+  });
+}
+
+function remoteOfflineText() {
+  if (!remote.client || !remote.client.connected) return t("alert_remote_server");
+  const ago = remote.stateAt ? fmtAgo((Date.now() - remote.stateAt) / 1000) : "";
+  return t("alert_remote_device", ago);
+}
+
+if (REMOTE) {
+  document.body.classList.add("remote");
+  // The page asks the device as it always does; remotely the answer comes over MQTT.
+  const localFetch = window.fetch.bind(window);
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (!url.startsWith("/api/")) return localFetch(input, init);  // ThingSpeak and the like
+    const method = (init.method || "GET").toUpperCase();
+    const path = url.split("?")[0];
+    const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+    if (method === "GET" && path === "/api/status") {
+      // The device publishes it; old news (or a device gone quiet) counts as unreachable.
+      if (!remote.client || !remote.client.connected || remote.online === false || !remote.state ||
+          Date.now() - remote.stateAt > 25e3) throw new TypeError("offline");
+      return json(200, remote.state);
+    }
+    const a = await remoteRequest(method, path, init.body ? JSON.parse(init.body) : undefined);
+    return json(a.status, a.body);
+  };
+  setInterval(watch, 30e3);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !remote.client) return;
+    remote.client.nudge();
+    watch();
+  });
+  $("logout").addEventListener("click", async () => {
+    if (!(await confirmDialog(t("sure"), t("conf_logout"), t("yes_logout")))) return;
+    store("remote_login", null);
+    remote.creds = null;
+    if (remote.client) remote.client.stop();
+    remote.client = null;
+    $("login-pass").value = "";
+    showLogin("form");
+  });
+}
+
+applyStatic();
+renderLang();
+setSeg("seg-range", String([1, 6, 24, 168, 720].includes(rangeH) ? rangeH : (rangeH = 6)));
+setSeg("seg-measure", measure);
+showTab(REMOTE ? "thermo" : tabFromPath(location.pathname));
+if (REMOTE) remoteStart();
+fetchStatus().then(() => { if (thSub === "history") fetchHistory(); });
+setInterval(fetchStatus, 5e3);
+// History only while it is on screen: from ThingSpeak it is a sizeable download.
+setInterval(() => { if (!$("view-thermo").hidden && thSub === "history") fetchHistory(); }, 60e3);
+setInterval(renderStatus, 1e3);
+</script>
+</body>
+</html>
