@@ -14,6 +14,12 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>Thermcon</title>
+<script>
+// Nothing shows until the script at the end has set the page up (language,
+// tab, sign-in); a page drawn half-built would flash before the right screen.
+document.documentElement.classList.add("cloak");
+document.addEventListener("DOMContentLoaded", () => document.documentElement.classList.remove("cloak"));
+</script>
 <style>
 :root {
   color-scheme: light;
@@ -82,6 +88,7 @@ button, label, .tabs, .subtabs, .appbar { -webkit-user-select: none; user-select
 button:active:not(:disabled) { opacity: 0.7; }
 a { color: var(--accent); text-decoration: none; }
 [hidden] { display: none !important; }
+.cloak body > * { visibility: hidden !important; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -147,7 +154,8 @@ a { color: var(--accent); text-decoration: none; }
 .login[hidden] { display: none; }
 .login-card { width: min(400px, 100%); }
 .login-card .brand { margin-bottom: 8px; }
-#login-fields { margin-top: 14px; }
+.login-fields { margin-top: 14px; }
+#login-msg:not(:empty) { margin-top: 14px; }
 .progress { height: 8px; overflow: hidden; background: var(--surface-2); border-radius: 4px; }
 .progress > div { width: 0; height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.25s; }
 .progress.indeterminate > div { width: 35%; animation: slide 1.2s ease-in-out infinite; }
@@ -790,7 +798,13 @@ th:first-child, td:first-child { text-align: left; }
   <form id="login-form" class="card login-card">
     <div class="brand"><svg class="icon"><use href="#i-thermo"/></svg>Thermcon</div>
     <p id="login-text" class="help"></p>
-    <div id="login-fields">
+    <div id="login-setup" class="login-fields" hidden>
+      <div class="field">
+        <label for="login-link" data-t="login_link">Kurulum bağlantısı</label>
+        <input id="login-link" class="input" type="text" inputmode="url" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://…">
+      </div>
+    </div>
+    <div id="login-fields" class="login-fields">
       <div class="field">
         <label for="login-user" data-t="remote_user">Kullanıcı adı</label>
         <input id="login-user" class="input" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false">
@@ -799,9 +813,9 @@ th:first-child, td:first-child { text-align: left; }
         <label for="login-pass" data-t="remote_pass">Şifre</label>
         <div class="input-wrap"><input id="login-pass" class="input" type="password" autocomplete="current-password"><button class="icon-btn" type="button" data-reveal="login-pass" aria-label="Şifreyi göster"><svg class="icon"><use href="#i-eye"/></svg></button></div>
       </div>
-      <div id="login-msg" role="alert"></div>
-      <div class="actions"><button id="login-go" class="btn btn-primary" type="submit" data-t="login_go">Bağlan</button></div>
     </div>
+    <div id="login-msg" role="alert"></div>
+    <div class="actions"><button id="login-go" class="btn btn-primary" type="submit" data-t="login_go">Bağlan</button></div>
   </form>
 </div>
 
@@ -919,7 +933,10 @@ const L = {
     tab_cloud: "Bulut",
     login_text: "Uzaktan erişim için EMQX kullanıcı adınızı ve şifrenizi girin. Yalnızca bu telefonda saklanır.",
     login_go: "Bağlan",
-    login_setup: "Bu uygulamayı ilk kez evde açın: cihazın Ayarlar › Bulut › Uzaktan erişim sayfasındaki \"Telefonu kur\" bağlantısına dokunun.",
+    login_setup: "Önce bu telefonu cihaza tanıtın: kurulum bağlantısını buraya yapıştırın. Bağlantı, evde cihazın Ayarlar › Bulut › Uzaktan erişim sayfasında \"Telefonu kur\" adıyla durur.",
+    login_link: "Kurulum bağlantısı",
+    login_next: "Devam",
+    login_err_link: "Bu bir kurulum bağlantısı değil. Bağlantının tamamını yapıştırın.",
     login_err_auth: "Kullanıcı adı ya da şifre yanlış.",
     login_err_net: "Sunucuya bağlanılamadı; internet bağlantısını kontrol edin.",
     alert_remote_server: "Sunucuya (EMQX) bağlanılamıyor. Telefonun internet bağlantısını kontrol edin.",
@@ -948,7 +965,7 @@ const L = {
     remote_err_connect: "EMQX sunucusuna bağlanılamadı; adresi kontrol edin.",
     remote_err_tls: "EMQX ile güvenli bağlantı kurulamadı.",
     remote_setup: "Telefonu kur",
-    remote_setup_help: "Bu bağlantıyı telefonda açın, kendi EMQX kullanıcı adınız ve şifrenizle girin, sonra Paylaş › Ana Ekrana Ekle ile ekleyin.",
+    remote_setup_help: "Bu bağlantıyı telefonda açın ve Paylaş › Ana Ekrana Ekle ile ekleyin. Sonra uygulamayı ana ekrandan açıp kendi EMQX kullanıcı adınız ve şifrenizle girin.",
     remote_no_app: "Uzak uygulama adresi girilince telefon kurulum bağlantısı burada görünür.",
     ch_remote_on: "Uzaktan erişim açılacak.",
     ch_remote_off: "Uzaktan erişim kapatılacak.",
@@ -1224,7 +1241,10 @@ const L = {
     tab_cloud: "Облако",
     login_text: "Для удалённого доступа введите своё имя пользователя и пароль EMQX. Они хранятся только на этом телефоне.",
     login_go: "Войти",
-    login_setup: "Впервые откройте это приложение дома: на устройстве в «Настройки › Облако › Удалённый доступ» нажмите «Настроить телефон».",
+    login_setup: "Сначала свяжите телефон с устройством: вставьте сюда ссылку настройки. Она находится дома на устройстве в «Настройки › Облако › Удалённый доступ» под названием «Настроить телефон».",
+    login_link: "Ссылка настройки",
+    login_next: "Далее",
+    login_err_link: "Это не ссылка настройки. Вставьте ссылку целиком.",
     login_err_auth: "Неверное имя пользователя или пароль.",
     login_err_net: "Не удалось подключиться к серверу; проверьте интернет.",
     alert_remote_server: "Нет связи с сервером (EMQX). Проверьте интернет на телефоне.",
@@ -1253,7 +1273,7 @@ const L = {
     remote_err_connect: "Не удалось подключиться к серверу EMQX; проверьте адрес.",
     remote_err_tls: "Не удалось установить защищённое соединение с EMQX.",
     remote_setup: "Настроить телефон",
-    remote_setup_help: "Откройте эту ссылку на телефоне, войдите со своим именем и паролем EMQX, затем добавьте через «Поделиться › На экран „Домой“».",
+    remote_setup_help: "Откройте эту ссылку на телефоне и добавьте через «Поделиться › На экран „Домой“». Затем откройте приложение с экрана «Домой» и войдите со своим именем и паролем EMQX.",
     remote_no_app: "Ссылка для настройки телефона появится здесь, когда будет указан адрес удалённого приложения.",
     ch_remote_on: "Удалённый доступ будет включён.",
     ch_remote_off: "Удалённый доступ будет выключен.",
@@ -3573,13 +3593,39 @@ function store(key, value) {
   try { if (value == null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* blocked */ }
 }
 
+// The device to reach, from a setup link "…#h=<broker>&p=<port>&d=<id>" or a
+// pasted text that holds one. A setup link never carries a password.
+function parseSetup(text) {
+  const q = new URLSearchParams(text.slice(text.indexOf("#") + 1).split(/\s/)[0]);
+  const host = q.get("h") || "", id = q.get("d") || "";
+  if (!/^[\w.-]+$/.test(host) || !/^[0-9a-f]{4,32}$/i.test(id)) return null;
+  return { host, port: Number(q.get("p")) || 8084, id };
+}
+
+// The device's address is kept in a cookie too (the password never is): an
+// iPhone gives an app added to the Home Screen a copy of Safari's cookies and
+// nothing else, and that is how the app knows its device on first start.
+function keepSetupCookie(cfg) {
+  const value = encodeURIComponent("h=" + cfg.host + "&p=" + cfg.port + "&d=" + cfg.id);
+  document.cookie = "thermcon_setup=" + value + "; Max-Age=31536000; Path=" + location.pathname.replace(/[^/]*$/, "") +
+    "; Secure; SameSite=Strict";
+}
+function setupFromCookie() {
+  const m = document.cookie.match(/(?:^|;\s*)thermcon_setup=([^;]*)/);
+  return m ? parseSetup("#" + decodeURIComponent(m[1])) : null;
+}
+
 function remoteStart() {
-  const q = new URLSearchParams(location.hash.slice(1));
-  if (q.get("h") && q.get("d")) {
-    store("remote", { host: q.get("h"), port: Number(q.get("p")) || 8084, id: q.get("d") });
+  const linked = parseSetup(location.hash);
+  if (linked) {
+    store("remote", linked);
     history.replaceState(null, "", location.pathname + location.search);  // the link's details stay out of the address
   }
-  remote.cfg = loadStored("remote");
+  remote.cfg = loadStored("remote") || setupFromCookie();
+  if (remote.cfg) {
+    store("remote", remote.cfg);
+    keepSetupCookie(remote.cfg);  // Safari keeps a script's cookie a week only: renewed on each start
+  }
   remote.creds = loadStored("remote_login");
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => { /* works without, just not offline */ });
@@ -3590,15 +3636,29 @@ function remoteStart() {
 }
 
 function showLogin(mode, error) {
+  const setup = mode === "setup";
   $("login").hidden = false;
-  $("login-text").textContent = t(mode === "setup" ? "login_setup" : "login_text");
-  $("login-fields").hidden = mode === "setup";
+  $("login-text").textContent = t(setup ? "login_setup" : "login_text");
+  $("login-setup").hidden = !setup;
+  $("login-fields").hidden = setup;
+  $("login-go").dataset.t = setup ? "login_next" : "login_go";
+  $("login-go").textContent = t($("login-go").dataset.t);
   if (remote.creds) $("login-user").value = remote.creds.user;
   showMsg("login-msg", error ? "crit" : null, error ? t(error) : null);
 }
 
 $("login-form").addEventListener("submit", (e) => {
   e.preventDefault();
+  if (!remote.cfg) {  // setting up: the pasted link names the device
+    const cfg = parseSetup($("login-link").value.trim());
+    if (!cfg) { showMsg("login-msg", "crit", t("login_err_link")); return; }
+    remote.cfg = cfg;
+    store("remote", cfg);
+    keepSetupCookie(cfg);
+    $("login-link").value = "";
+    showLogin("form");
+    return;
+  }
   const user = $("login-user").value.trim();
   const pass = $("login-pass").value;
   if (!user || !pass) return;
