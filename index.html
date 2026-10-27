@@ -1574,6 +1574,8 @@ let apActive = false;
 let apInfo = null;      // the last GET /api/ap
 let thermoAt = 0;       // when the device last answered a thermostat change
 let thermoDataAt = 0;   // when status.thermostat arrived, from a poll or a change
+let holdUntil = 0;      // when a held relay switch is due, on this clock; 0: none
+let holdAsked = false;  // the new state was asked for once the switch fell due
 let ctlMode = null;     // mode chosen on Kontrol but not applied yet
 let ctlTarget = null;   // target chosen with − / + but not applied yet
 let timeSent = false;
@@ -1848,7 +1850,11 @@ async function fetchStatus() {
     const prevUptime = status ? status.uptime_s : null;
     // A poll sent before the latest change would show the old state again.
     if (status && started < thermoAt) next.thermostat = status.thermostat;
-    else thermoDataAt = Date.now();
+    else {
+      // Remotely a poll gets the state the device sent last: it is as old as that message.
+      thermoDataAt = REMOTE && remote.stateAt ? remote.stateAt : Date.now();
+      trackHold(next.thermostat, thermoDataAt);
+    }
     status = next;
     statusAt = Date.now();
     failures = 0;
@@ -1996,7 +2002,23 @@ async function postThermo(body) {
   const th = await r.json();
   if (status) status.thermostat = th;
   thermoAt = thermoDataAt = Date.now();
+  trackHold(th, thermoDataAt);
   return th;
+}
+
+// The relay protection's countdown runs on a fixed due time. A later answer
+// that differs by network delay alone leaves it alone, so it never jumps back.
+function trackHold(th, at) {
+  const ms = th ? (th.hold_ms != null ? th.hold_ms : th.hold_s * 1000) : 0;
+  if (!ms) {
+    holdUntil = 0;
+    return;
+  }
+  const due = at + ms;
+  if (!holdUntil || Math.abs(due - holdUntil) > 1500) {
+    holdUntil = due;
+    holdAsked = false;
+  }
 }
 
 const modeName = (m) => t("mode_" + m);
@@ -2039,7 +2061,11 @@ function renderThermo() {
   // Rebuilt only when it changes, so its button is not swapped under a finger.
   let text = "";
   let resume = false;
-  const hold = th && th.hold_s ? Math.max(0, Math.ceil(th.hold_s - (Date.now() - thermoDataAt) / 1000)) : 0;
+  const hold = holdUntil ? Math.max(0, Math.ceil((holdUntil - Date.now()) / 1000)) : 0;
+  if (holdUntil && !holdAsked && Date.now() > holdUntil + 300) {
+    holdAsked = true;  // the switch is due: ask for the new state instead of waiting for the next poll
+    if (REMOTE) watch(); else fetchStatus();
+  }
   if (ctlEdited()) text = t("info_pending");
   else if (hold) text = t("info_hold", t("wait", hold), th.heating);
   else if (th && th.mode === "off") text = t("info_off");
