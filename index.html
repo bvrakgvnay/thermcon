@@ -3654,9 +3654,13 @@ class Mqtt {
           this.send(new Uint8Array([0xC0, 0]));
         }, 30e3);
         this.handlers.state("connected");
-      } else {
+      } else if (body[1] === 4 || body[1] === 5) {
         this.stopped = true;  // wrong user or password: retrying will not help
-        this.handlers.state(body[1] === 4 || body[1] === 5 ? "auth" : "refused");
+        this.handlers.state("auth");
+        this.ws.close();
+      } else {
+        // Turned down for now ("server unavailable" and the like): the next try may work.
+        this.handlers.state("refused");
         this.ws.close();
       }
     } else if (type === 3) {  // PUBLISH
@@ -3777,7 +3781,7 @@ function remoteConnect(signingIn) {
         $("session-user").textContent = remote.creds.user;
         remote.client.subscribe([[remote.topic("state"), 0], [remote.topic("online"), 1], [remote.topic("res/" + remote.me), 1]]);
         watch();
-      } else if (st === "auth" || st === "refused") {
+      } else if (st === "auth") {  // only a wrong user or password forgets the sign-in
         $("login-go").disabled = false;
         store("remote_login", null);
         showLogin("form", "login_err_auth");
