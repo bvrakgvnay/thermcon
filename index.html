@@ -237,6 +237,11 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .sp-info { min-height: 20px; margin: 12px 0 0; font-size: 13.5px; text-align: center; color: var(--ink-2); }
 .stepper { display: flex; align-items: center; gap: 14px; }
 .stepper-value { min-width: 76px; font-size: 22px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+/* Minutes and seconds side by side, each with its own − / +. */
+.duration { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.duration .stepper { gap: 8px; }
+.duration .stepper-value { min-width: 44px; }
+.duration-unit { margin-top: 2px; font-size: 12.5px; color: var(--muted); text-align: center; }
 .segmented button.today::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
 .day-bar { position: relative; display: flex; height: 30px; margin-top: 14px; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
 .day-bar .seg { display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--ink); }
@@ -495,12 +500,25 @@ th:first-child, td:first-child { text-align: left; }
             <div class="label" id="dwell-label" data-t="dwell">Röle koruması</div>
             <button id="dwell-default" class="link-btn" type="button" data-t="dwell_default" hidden>Varsayılana dön (3 dk)</button>
           </div>
-          <div class="stepper" role="group" aria-labelledby="dwell-label">
-            <button id="dwell-down" class="round-btn small" type="button" aria-label="Süreyi 1 dakika kısalt" data-t-aria="dwell_down"><svg class="icon"><use href="#i-minus"/></svg></button>
-            <span id="dwell-value" class="stepper-value" aria-live="polite">—</span>
-            <button id="dwell-up" class="round-btn small" type="button" aria-label="Süreyi 1 dakika uzat" data-t-aria="dwell_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+          <div class="duration" role="group" aria-labelledby="dwell-label">
+            <div class="duration-part">
+              <div class="stepper">
+                <button id="dwell-min-down" class="round-btn small" type="button" aria-label="Bir dakika kısalt" data-t-aria="dwell_min_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+                <span id="dwell-min" class="stepper-value" aria-live="polite">—</span>
+                <button id="dwell-min-up" class="round-btn small" type="button" aria-label="Bir dakika uzat" data-t-aria="dwell_min_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="duration-unit" data-t="unit_min">dakika</div>
+            </div>
+            <div class="duration-part">
+              <div class="stepper">
+                <button id="dwell-sec-down" class="round-btn small" type="button" aria-label="Bir saniye kısalt" data-t-aria="dwell_sec_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+                <span id="dwell-sec" class="stepper-value" aria-live="polite">—</span>
+                <button id="dwell-sec-up" class="round-btn small" type="button" aria-label="Bir saniye uzat" data-t-aria="dwell_sec_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+              </div>
+              <div class="duration-unit" data-t="unit_sec">saniye</div>
+            </div>
           </div>
-          <p class="help" data-t="dwell_help">Kombi çalışmaya başlayınca ya da durunca en az bu kadar süre öyle kalır. Mod ya da hedef sık değişse de röle ve kombi kısa aralıklarla açılıp kapanmaz.</p>
+          <p id="dwell-help" class="help" data-t="dwell_help">Kombi çalışmaya başlayınca ya da durunca en az bu kadar süre öyle kalır. Mod ya da hedef sık değişse de röle ve kombi kısa aralıklarla açılıp kapanmaz.</p>
         </div>
         <div class="sep"></div>
         <div id="adv-sensor-field" class="field" hidden>
@@ -851,9 +869,9 @@ const T_MAX = 30;
 const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps
 const H_MAX = 3;
 const H_DEFAULT = 1;
-const D_MIN = 1;          // relay dwell, minutes
-const D_MAX = 10;
-const D_DEFAULT = 3;
+const D_MIN = 0;          // relay dwell, seconds
+const D_MAX = 600;
+const D_DEFAULT = 180;
 const MAX_SLOTS = 6;      // program periods a day
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const utf8Len = (s) => new TextEncoder().encode(s).length;
@@ -887,7 +905,7 @@ const L = {
       : Math.floor(s / 86400) + " gün " + Math.floor((s % 86400) / 3600) + " sa"),
     minutes: (m) => (m < 60 ? m + " dk" : Math.floor(m / 60) + " sa" + (m % 60 ? " " + (m % 60) + " dk" : "")),
     wait: (s) => [s >= 60 ? Math.floor(s / 60) + " dk" : "", s % 60 ? (s % 60) + " sn" : ""].filter(Boolean).join(" "),
-    dwell_value: (m) => m + " dk",
+    dwell_none: "0 sn (koruma yok)",
     q_strong: "Güçlü", q_medium: "Orta", q_weak: "Zayıf",
     connecting: "Bağlanıyor",
     settings: "Ayarlar",
@@ -924,8 +942,11 @@ const L = {
     hyst_down: "Histeresizi 0,1 °C azalt", hyst_up: "Histeresizi 0,1 °C artır",
     dwell: "Röle koruması",
     dwell_default: "Varsayılana dön (3 dk)",
-    dwell_down: "Süreyi 1 dakika kısalt", dwell_up: "Süreyi 1 dakika uzat",
+    dwell_min_down: "Bir dakika kısalt", dwell_min_up: "Bir dakika uzat",
+    dwell_sec_down: "Bir saniye kısalt", dwell_sec_up: "Bir saniye uzat",
+    unit_min: "dakika", unit_sec: "saniye",
     dwell_help: "Kombi çalışmaya başlayınca ya da durunca en az bu kadar süre öyle kalır. Mod ya da hedef sık değişse de röle ve kombi kısa aralıklarla açılıp kapanmaz.",
+    dwell_help_off: "Koruma kapalı: röle, istek değişince hemen değişir. Kombinin kısa aralıklarla açılıp kapanmaması için birkaç dakika önerilir.",
     ctl_sensor: "Kontrol sensörü",
     ctl_sensor_help: "Termostat bu sensörün ölçtüğü sıcaklığa göre çalışır.",
     relay_conn: "Röle bağlantısı",
@@ -1142,7 +1163,7 @@ const L = {
     relay_help: (nc) => "Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; " +
       (nc ? "kombi kendi ayarıyla çalışır." : "kombi çalışmaz."),
     conf_hyst: (a, b) => "Histeresiz " + a + " yerine " + b + " olacak.",
-    conf_dwell: (a, b) => "Röle koruması " + a + " dk yerine " + b + " dk olacak.",
+    conf_dwell: (a, b) => "Röle koruması " + a + " yerine " + b + " olacak.",
     conf_sensor: (mac) => "Termostat " + mac + " sensörüne göre çalışacak.",
     conf_now: " Değişiklik hemen uygulanır.",
     boiler_ran: "Kombi çalıştı",
@@ -1195,7 +1216,7 @@ const L = {
       : Math.floor(s / 86400) + " д " + Math.floor((s % 86400) / 3600) + " ч"),
     minutes: (m) => (m < 60 ? m + " мин" : Math.floor(m / 60) + " ч" + (m % 60 ? " " + (m % 60) + " мин" : "")),
     wait: (s) => [s >= 60 ? Math.floor(s / 60) + " мин" : "", s % 60 ? (s % 60) + " с" : ""].filter(Boolean).join(" "),
-    dwell_value: (m) => m + " мин",
+    dwell_none: "0 с (без защиты)",
     q_strong: "Сильный", q_medium: "Средний", q_weak: "Слабый",
     connecting: "Подключение",
     settings: "Настройки",
@@ -1232,8 +1253,11 @@ const L = {
     hyst_down: "Уменьшить гистерезис на 0,1 °C", hyst_up: "Увеличить гистерезис на 0,1 °C",
     dwell: "Защита реле",
     dwell_default: "По умолчанию (3 мин)",
-    dwell_down: "Уменьшить время на 1 минуту", dwell_up: "Увеличить время на 1 минуту",
+    dwell_min_down: "Уменьшить на минуту", dwell_min_up: "Увеличить на минуту",
+    dwell_sec_down: "Уменьшить на секунду", dwell_sec_up: "Увеличить на секунду",
+    unit_min: "минуты", unit_sec: "секунды",
     dwell_help: "Включившись или остановившись, котёл остаётся в этом состоянии не меньше заданного времени. Даже при частой смене режима или цели реле и котёл не будут часто включаться и выключаться.",
+    dwell_help_off: "Защита выключена: реле переключается сразу, как только меняется запрос. Чтобы котёл не включался и не выключался слишком часто, рекомендуется несколько минут.",
     ctl_sensor: "Датчик управления",
     ctl_sensor_help: "Термостат работает по температуре этого датчика.",
     relay_conn: "Подключение реле",
@@ -1450,7 +1474,7 @@ const L = {
     relay_help: (nc) => "Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается; " +
       (nc ? "котёл работает по своим настройкам." : "котёл не работает."),
     conf_hyst: (a, b) => "Гистерезис изменится с " + a + " на " + b + ".",
-    conf_dwell: (a, b) => "Защита реле изменится с " + a + " мин на " + b + " мин.",
+    conf_dwell: (a, b) => "Защита реле изменится с " + a + " на " + b + ".",
     conf_sensor: (mac) => "Термостат будет работать по датчику " + mac + ".",
     conf_now: " Изменение вступит в силу сразу.",
     boiler_ran: "Котёл работал",
@@ -1653,6 +1677,29 @@ function setSeg(group, value) {
 }
 function onSeg(group, handler) {
   for (const b of $(group).querySelectorAll("button")) b.addEventListener("click", () => { setSeg(group, b.dataset.value); handler(b.dataset.value); });
+}
+// A − / + button: one step a tap; held, it keeps stepping, faster after a while.
+// A scroll that starts on it changes nothing.
+function holdRepeat(button, step) {
+  let timer = null;
+  let held = false;
+  const stop = () => { clearTimeout(timer); timer = null; };
+  const run = (n) => {
+    if (button.disabled) return stop();
+    held = true;
+    step();
+    timer = setTimeout(() => run(n + 1), n < 8 ? 120 : 40);
+  };
+  button.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    held = false;
+    stop();
+    timer = setTimeout(() => run(0), 450);
+  });
+  for (const type of ["pointerup", "pointerleave", "pointercancel"]) button.addEventListener(type, stop);
+  button.addEventListener("contextmenu", (e) => e.preventDefault());  // a long press is not a menu
+  // A hold has already stepped: the click that ends it does nothing more.
+  button.addEventListener("click", () => { if (held) held = false; else step(); });
 }
 
 for (const b of document.querySelectorAll("[data-reveal]")) {
@@ -2268,12 +2315,18 @@ function renderAdvanced(reset) {
   if (reset || advHyst == null) {
     advHyst = th.hysteresis;
     advSensor = th.sensor;
-    advDwell = th.dwell;
+    advDwell = th.dwell_s;
   }
-  $("dwell-value").textContent = t("dwell_value", advDwell);
-  $("dwell-down").disabled = advDwell <= D_MIN;
-  $("dwell-up").disabled = advDwell >= D_MAX;
+  $("dwell-min").textContent = String(Math.floor(advDwell / 60));
+  $("dwell-sec").textContent = String(advDwell % 60);
+  $("dwell-min-down").disabled = advDwell < 60;
+  $("dwell-min-up").disabled = advDwell >= D_MAX;
+  $("dwell-sec-down").disabled = advDwell <= D_MIN;
+  $("dwell-sec-up").disabled = advDwell >= D_MAX;
   $("dwell-default").hidden = advDwell === D_DEFAULT;
+  const dwellHelp = $("dwell-help");
+  dwellHelp.dataset.t = advDwell ? "dwell_help" : "dwell_help_off";
+  dwellHelp.textContent = t(dwellHelp.dataset.t);
   $("hyst-value").textContent = fmtC(advHyst);
   $("hyst-down").disabled = advHyst <= H_MIN + 1e-6;
   $("hyst-up").disabled = advHyst >= H_MAX - 1e-6;
@@ -2297,14 +2350,23 @@ function renderAdvanced(reset) {
   const nc = th.relay === "nc";
   $("relay-v").textContent = t(nc ? "relay_nc" : "relay_no");
   $("relay-help").textContent = t("relay_help", nc);
-  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell && (!many || advSensor === th.sensor);
+  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell_s && (!many || advSensor === th.sensor);
 }
 
-$("hyst-down").addEventListener("click", () => { advHyst = Math.max(H_MIN, roundTenth(advHyst - 0.1)); renderAdvanced(false); });
-$("hyst-up").addEventListener("click", () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
+const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
+
+holdRepeat($("hyst-down"), () => { advHyst = Math.max(H_MIN, roundTenth(advHyst - 0.1)); renderAdvanced(false); });
+holdRepeat($("hyst-up"), () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
 $("hyst-default").addEventListener("click", () => { advHyst = H_DEFAULT; renderAdvanced(false); });
-$("dwell-down").addEventListener("click", () => { advDwell = Math.max(D_MIN, advDwell - 1); renderAdvanced(false); });
-$("dwell-up").addEventListener("click", () => { advDwell = Math.min(D_MAX, advDwell + 1); renderAdvanced(false); });
+// The time is kept in seconds: 0:59 + 1 s is 1:00, so the seconds reach every value too.
+function stepDwell(by) {
+  advDwell = Math.min(D_MAX, Math.max(D_MIN, advDwell + by));
+  renderAdvanced(false);
+}
+holdRepeat($("dwell-min-down"), () => stepDwell(-60));
+holdRepeat($("dwell-min-up"), () => stepDwell(60));
+holdRepeat($("dwell-sec-down"), () => stepDwell(-1));
+holdRepeat($("dwell-sec-up"), () => stepDwell(1));
 $("dwell-default").addEventListener("click", () => { advDwell = D_DEFAULT; renderAdvanced(false); });
 $("adv-sensor").addEventListener("change", (e) => { advSensor = e.target.value; renderAdvanced(false); });
 $("adv-discard").addEventListener("click", () => { renderAdvanced(true); showMsg("adv-msg"); });
@@ -2317,9 +2379,9 @@ $("adv-form").addEventListener("submit", async (e) => {
     body.hysteresis = advHyst;
     changes.push(t("conf_hyst", fmtC(th.hysteresis), fmtC(advHyst)));
   }
-  if (advDwell !== th.dwell) {
-    body.dwell = advDwell;
-    changes.push(t("conf_dwell", th.dwell, advDwell));
+  if (advDwell !== th.dwell_s) {
+    body.dwell_s = advDwell;
+    changes.push(t("conf_dwell", fmtDwell(th.dwell_s), fmtDwell(advDwell)));
   }
   if (advSensor && advSensor !== th.sensor) {
     body.sensor = advSensor;
