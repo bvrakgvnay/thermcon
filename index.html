@@ -1735,6 +1735,9 @@ function confirmDialog(title, text, okLabel) {
 const SETTINGS_TABS = ["wifi", "ap", "cloud", "general"];
 const PATHS = { thermo: "/", wifi: "/setup", ap: "/ap", cloud: "/bulut", general: "/genel" };
 const tabFromPath = (p) => Object.keys(PATHS).find((k) => k !== "thermo" && PATHS[k] === p) || "thermo";
+// The view a history entry stands for. Locally every view has its own address;
+// the remote page has a single one, so its entries carry the view instead.
+const viewOf = () => REMOTE ? (history.state && history.state.view) || "thermo" : tabFromPath(location.pathname);
 let fromThermo = false;  // the settings page was opened from the thermostat page
 
 // how: "push" or "replace" the address, or leave it as it is.
@@ -1753,9 +1756,10 @@ function showTab(name, how) {
     $("tab-" + tab).tabIndex = selected ? 0 : -1;
     $("panel-" + tab).hidden = !selected;
   }
-  if (how && !REMOTE && location.pathname !== PATHS[name]) {
-    if (how === "push") history.pushState(null, "", PATHS[name]);
-    else history.replaceState(null, "", PATHS[name]);
+  if (how && (REMOTE || location.pathname !== PATHS[name])) {
+    const url = REMOTE ? location.href : PATHS[name];
+    if (how === "push") history.pushState({ view: name }, "", url);
+    else history.replaceState({ view: name }, "", url);
   }
   hideHover();
   if (!settings && thSub === "history") renderChart();
@@ -1804,13 +1808,15 @@ function subtabs(prefix, names, onShow) {
 
 // Switching between the settings tabs replaces the address, so Back leaves the settings page.
 for (const tab of SETTINGS_TABS) $("tab-" + tab).addEventListener("click", () => showTab(tab, "replace"));
-arrowKeys(SETTINGS_TABS, (tab) => $("tab-" + tab), (tab) => showTab(tab, "replace"));
+// The arrow keys skip the tabs the remote page does not show.
+const shownTabs = SETTINGS_TABS.filter((tab) => !REMOTE || !$("tab-" + tab).classList.contains("local-only"));
+arrowKeys(shownTabs, (tab) => $("tab-" + tab), (tab) => showTab(tab, "replace"));
 $("open-settings").addEventListener("click", () => openSettings(REMOTE ? "cloud" : "wifi"));
 $("back").addEventListener("click", () => {
   if (fromThermo) history.back();  // to the thermostat page it came from
   else showTab("thermo", "push");
 });
-window.addEventListener("popstate", () => showTab(tabFromPath(location.pathname)));
+window.addEventListener("popstate", () => showTab(viewOf()));
 
 subtabs("th", ["control", "program", "history", "advanced"], (name) => {
   thSub = name;
@@ -1987,7 +1993,9 @@ function renderStatus() {
   if (!$("panel-cloud").hidden && status && status.cloud) {
     cloudInfo = status.cloud;
     renderCloud();
-    updateCloudActions();
+    // The status may come before the panel's own request (remotely it often does).
+    if (cloudFilled) updateCloudActions();
+    else fillCloudForm();
     checkChannel(false);
   }
   if (!$("panel-cloud").hidden && !$("cls-remote").hidden && Date.now() - remoteAt > 10e3) loadRemote();
@@ -3078,9 +3086,10 @@ $("ap-form").addEventListener("submit", async (e) => {
 /* ---------- Bulut: ThingSpeak ---------- */
 
 let cloudInfo = null;   // ThingSpeak settings and state from the device
+let cloudFilled = false;  // the form has shown the device's values: since then, a difference is the user's edit
 
 function cloudEdited() {
-  return cloudInfo != null && ($("cloud-on").checked !== cloudInfo.enabled ||
+  return cloudFilled && cloudInfo != null && ($("cloud-on").checked !== cloudInfo.enabled ||
     $("cloud-channel").value.trim() !== (cloudInfo.channel ? String(cloudInfo.channel) : "") ||
     $("cloud-wkey").value.trim().toUpperCase() !== cloudInfo.write_key ||
     $("cloud-rkey").value.trim().toUpperCase() !== cloudInfo.read_key);
@@ -3152,6 +3161,7 @@ function fillCloudForm() {
   $("cloud-channel").value = cloudInfo.channel ? String(cloudInfo.channel) : "";
   $("cloud-wkey").value = cloudInfo.write_key;
   $("cloud-rkey").value = cloudInfo.read_key;
+  cloudFilled = true;
   updateCloudActions();
 }
 
@@ -3858,7 +3868,9 @@ applyStatic();
 renderLang();
 setSeg("seg-range", String([1, 6, 24, 168, 720].includes(rangeH) ? rangeH : (rangeH = 6)));
 setSeg("seg-measure", measure);
-showTab(REMOTE ? "thermo" : tabFromPath(location.pathname));
+showTab(viewOf());
+// A remote page reloaded on its settings: the entry before it is the thermostat's.
+if (REMOTE && viewOf() !== "thermo") fromThermo = true;
 if (REMOTE) remoteStart();
 fetchStatus().then(() => { if (thSub === "history") fetchHistory(); });
 setInterval(fetchStatus, 5e3);
