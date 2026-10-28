@@ -528,9 +528,19 @@ th:first-child, td:first-child { text-align: left; }
         </div>
         <dl class="kv">
           <div id="adv-sensor-row"><dt data-t="ctl_sensor">Kontrol sensörü</dt><dd id="adv-sensor-v">—</dd></div>
-          <div><dt data-t="relay_conn">Röle bağlantısı</dt><dd id="relay-v">—</dd></div>
         </dl>
-        <p id="relay-help" class="help"></p>
+        <div class="sep"></div>
+        <div class="field">
+          <div class="label-row">
+            <div class="label" id="relay-label" data-t="relay_conn">Röle bağlantısı</div>
+            <button id="relay-default" class="link-btn" type="button" data-t="relay_default" hidden>Varsayılana dön (NC)</button>
+          </div>
+          <div id="seg-relay" class="segmented block" role="group" aria-labelledby="relay-label">
+            <button type="button" data-value="nc">NC</button>
+            <button type="button" data-value="no">NO</button>
+          </div>
+          <p id="relay-help" class="help"></p>
+        </div>
         <div id="adv-actions" class="actions" hidden>
           <button id="adv-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
           <button id="adv-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
@@ -1159,9 +1169,11 @@ const L = {
     hyst_help: (target, low, high) => "Hedef " + target + " iken kombi " + low + NBSP + "°C'de çalışmaya başlar, " + high + NBSP +
       "°C'de durur. Küçük değer sıcaklığı daha sabit tutar ama kombiyi daha sık açıp kapatır.",
     not_found: "Henüz bulunamadı",
-    relay_nc: "NC (normalde kapalı)", relay_no: "NO (normalde açık)",
-    relay_help: (nc) => "Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; " +
-      (nc ? "kombi kendi ayarıyla çalışır." : "kombi çalışmaz."),
+    relay_default: "Varsayılana dön (NC)",
+    relay_help: (nc) => nc
+      ? "NC (normalde kapalı): kombi rölenin COM ve NC uçlarına bağlı, TH1-TH2 köprüsünün yerine. Isıtırken röle bırakılır, beklemede çeker. Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; kombi kendi ön panel ayarıyla çalışır."
+      : "NO (normalde açık): kombi rölenin COM ve NO uçlarına bağlı. Isıtırken röle çeker, beklemede bırakılır. Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; kombi ısıtmaz.",
+    conf_relay: (c) => "Röle bağlantısı " + c + " olacak; kombi rölenin COM ve " + c + " uçlarına bağlı olmalı.",
     conf_hyst: (a, b) => "Histeresiz " + a + " yerine " + b + " olacak.",
     conf_dwell: (a, b) => "Röle koruması " + a + " yerine " + b + " olacak.",
     conf_sensor: (mac) => "Termostat " + mac + " sensörüne göre çalışacak.",
@@ -1470,9 +1482,11 @@ const L = {
     hyst_help: (target, low, high) => "При цели " + target + " котёл включается при " + low + NBSP + "°C и выключается при " + high + NBSP +
       "°C. Меньшее значение точнее держит температуру, но чаще включает котёл.",
     not_found: "Пока не найден",
-    relay_nc: "NC (нормально замкнутый)", relay_no: "NO (нормально разомкнутый)",
-    relay_help: (nc) => "Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается; " +
-      (nc ? "котёл работает по своим настройкам." : "котёл не работает."),
+    relay_default: "По умолчанию (NC)",
+    relay_help: (nc) => nc
+      ? "NC (нормально замкнутый): котёл подключён к контактам COM и NC реле вместо перемычки TH1-TH2. При нагреве реле отпущено, в ожидании включено. Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается, и котёл работает по настройке на своей передней панели."
+      : "NO (нормально разомкнутый): котёл подключён к контактам COM и NO реле. При нагреве реле включено, в ожидании отпущено. Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается, и котёл не греет.",
+    conf_relay: (c) => "Подключение реле станет " + c + "; котёл должен быть подключён к контактам COM и " + c + " реле.",
     conf_hyst: (a, b) => "Гистерезис изменится с " + a + " на " + b + ".",
     conf_dwell: (a, b) => "Защита реле изменится с " + a + " на " + b + ".",
     conf_sensor: (mac) => "Термостат будет работать по датчику " + mac + ".",
@@ -1585,6 +1599,7 @@ let schedEdit = null;   // the week being edited
 let schedDay = -1;
 let advHyst = null;     // hysteresis being edited
 let advSensor = "";     // control sensor being edited
+let advRelay = null;    // relay contact being edited: "nc" or "no"
 let advDwell = null;    // relay dwell being edited
 let langEdit = null;    // language chosen on Genel but not applied yet
 
@@ -2349,6 +2364,7 @@ function renderAdvanced(reset) {
   if (reset || advHyst == null) {
     advHyst = th.hysteresis;
     advSensor = th.sensor;
+    advRelay = th.relay;
     advDwell = th.dwell_s;
   }
   $("dwell-min").textContent = String(Math.floor(advDwell / 60));
@@ -2381,10 +2397,11 @@ function renderAdvanced(reset) {
   }
   if (many) sel.value = advSensor;
 
-  const nc = th.relay === "nc";
-  $("relay-v").textContent = t(nc ? "relay_nc" : "relay_no");
-  $("relay-help").textContent = t("relay_help", nc);
-  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell_s && (!many || advSensor === th.sensor);
+  setSeg("seg-relay", advRelay);
+  $("relay-default").hidden = advRelay === "nc";
+  $("relay-help").textContent = t("relay_help", advRelay === "nc");
+  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell_s &&
+    (!many || advSensor === th.sensor) && advRelay === th.relay;
 }
 
 const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
@@ -2403,6 +2420,8 @@ holdRepeat($("dwell-sec-down"), () => stepDwell(-1));
 holdRepeat($("dwell-sec-up"), () => stepDwell(1));
 $("dwell-default").addEventListener("click", () => { advDwell = D_DEFAULT; renderAdvanced(false); });
 $("adv-sensor").addEventListener("change", (e) => { advSensor = e.target.value; renderAdvanced(false); });
+onSeg("seg-relay", (v) => { advRelay = v; renderAdvanced(false); });
+$("relay-default").addEventListener("click", () => { advRelay = "nc"; renderAdvanced(false); });
 $("adv-discard").addEventListener("click", () => { renderAdvanced(true); showMsg("adv-msg"); });
 $("adv-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -2420,6 +2439,10 @@ $("adv-form").addEventListener("submit", async (e) => {
   if (advSensor && advSensor !== th.sensor) {
     body.sensor = advSensor;
     changes.push(t("conf_sensor", advSensor));
+  }
+  if (advRelay !== th.relay) {
+    body.relay = advRelay;
+    changes.push(t("conf_relay", advRelay.toUpperCase()));
   }
   if (!changes.length) return;
   if (!(await confirmDialog(t("sure"), changes.join(" ") + t("conf_now"), t("yes_apply")))) return;
