@@ -242,6 +242,13 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .duration .stepper { gap: 8px; }
 .duration .stepper-value { min-width: 44px; }
 .duration-unit { margin-top: 2px; font-size: 12.5px; color: var(--muted); text-align: center; }
+/* The hysteresis apart: a row each for the start and the stop limit. */
+.band-mode { margin-bottom: 12px; }
+.band-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.band-row + .band-row { margin-top: 10px; }
+.band-row .label { margin: 0; }
+.band-row .stepper { gap: 8px; }
+.band-row .stepper-value { min-width: 68px; font-size: 18px; }
 .segmented button.today::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
 .day-bar { position: relative; display: flex; height: 30px; margin-top: 14px; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
 .day-bar .seg { display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--ink); }
@@ -379,12 +386,12 @@ th:first-child, td:first-child { text-align: left; }
           <span id="heat-badge" class="badge off">—</span>
         </div>
         <div class="setpoint">
-          <button id="sp-down" class="round-btn" type="button" aria-label="Hedefi 0,5 °C düşür" data-t-aria="sp_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+          <button id="sp-down" class="round-btn" type="button" aria-label="Hedefi düşür" data-t-aria="sp_down"><svg class="icon"><use href="#i-minus"/></svg></button>
           <div class="sp-center">
             <div id="sp-value" class="sp-value" aria-live="polite">—</div>
             <div class="sp-label" data-t="target_temp">Hedef sıcaklık</div>
           </div>
-          <button id="sp-up" class="round-btn" type="button" aria-label="Hedefi 0,5 °C yükselt" data-t-aria="sp_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+          <button id="sp-up" class="round-btn" type="button" aria-label="Hedefi yükselt" data-t-aria="sp_up"><svg class="icon"><use href="#i-plus"/></svg></button>
         </div>
         <p id="sp-info" class="sp-info"></p>
         <div class="sep"></div>
@@ -487,10 +494,32 @@ th:first-child, td:first-child { text-align: left; }
             <div class="label" id="hyst-label" data-t="hysteresis">Histeresiz</div>
             <button id="hyst-default" class="link-btn" type="button" data-t="hyst_default" hidden>Varsayılana dön (1,0 °C)</button>
           </div>
-          <div class="stepper" role="group" aria-labelledby="hyst-label">
+          <div id="seg-band" class="segmented block band-mode" role="group" aria-labelledby="hyst-label" hidden>
+            <button type="button" data-value="equal" data-t="band_equal">Eşit</button>
+            <button type="button" data-value="split" data-t="band_split">Ayrı</button>
+          </div>
+          <div id="hyst-equal" class="stepper" role="group" aria-labelledby="hyst-label">
             <button id="hyst-down" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C azalt" data-t-aria="hyst_down"><svg class="icon"><use href="#i-minus"/></svg></button>
             <span id="hyst-value" class="stepper-value" aria-live="polite">—</span>
             <button id="hyst-up" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C artır" data-t-aria="hyst_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+          </div>
+          <div id="hyst-split" hidden>
+            <div class="band-row">
+              <span class="label" id="below-label" data-t="band_below">Başlama: hedefin altında</span>
+              <div class="stepper" role="group" aria-labelledby="below-label">
+                <button id="below-down" class="round-btn small" type="button" aria-label="0,1 °C azalt" data-t-aria="band_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+                <span id="below-value" class="stepper-value" aria-live="polite">—</span>
+                <button id="below-up" class="round-btn small" type="button" aria-label="0,1 °C artır" data-t-aria="band_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+              </div>
+            </div>
+            <div class="band-row">
+              <span class="label" id="above-label" data-t="band_above">Durma: hedefin üstünde</span>
+              <div class="stepper" role="group" aria-labelledby="above-label">
+                <button id="above-down" class="round-btn small" type="button" aria-label="0,1 °C azalt" data-t-aria="band_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+                <span id="above-value" class="stepper-value" aria-live="polite">—</span>
+                <button id="above-up" class="round-btn small" type="button" aria-label="0,1 °C artır" data-t-aria="band_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+              </div>
+            </div>
           </div>
           <p id="hyst-help" class="help"></p>
         </div>
@@ -874,7 +903,7 @@ const NBSP = " ";
 const HOUR = 3600e3;
 const STALE_S = 180;
 const OTHER = "\u0000other";
-const T_MIN = 5;          // targets, °C, in 0.5 °C steps
+const T_MIN = 5;          // targets, °C, in steps of tStep()
 const T_MAX = 30;
 const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps
 const H_MAX = 3;
@@ -926,7 +955,7 @@ const L = {
     m_temp: "Sıcaklık", m_hum: "Nem",
     heating: "Isıtma",
     target_temp: "Hedef sıcaklık",
-    sp_down: "Hedefi 0,5 °C düşür", sp_up: "Hedefi 0,5 °C yükselt",
+    sp_down: "Hedefi düşür", sp_up: "Hedefi yükselt",
     op_mode: "Çalışma modu",
     mode_program: "Program", mode_manual: "Manuel", mode_off: "Kapalı",
     cancel: "Vazgeç", apply: "Uygula",
@@ -950,6 +979,9 @@ const L = {
     hysteresis: "Histeresiz",
     hyst_default: "Varsayılana dön (1,0 °C)",
     hyst_down: "Histeresizi 0,1 °C azalt", hyst_up: "Histeresizi 0,1 °C artır",
+    band_equal: "Eşit", band_split: "Ayrı",
+    band_below: "Başlama: hedefin altında", band_above: "Durma: hedefin üstünde",
+    band_down: "0,1 °C azalt", band_up: "0,1 °C artır",
     dwell: "Röle koruması",
     dwell_default: "Varsayılana dön (3 dk)",
     dwell_min_down: "Bir dakika kısalt", dwell_min_up: "Bir dakika uzat",
@@ -1175,6 +1207,8 @@ const L = {
       : "NO (normalde açık): kombi rölenin COM ve NO uçlarına bağlı. Isıtırken röle çeker, beklemede bırakılır. Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; kombi ısıtmaz.",
     conf_relay: (c) => "Röle bağlantısı " + c + " olacak; kombi rölenin COM ve " + c + " uçlarına bağlı olmalı.",
     conf_hyst: (a, b) => "Histeresiz " + a + " yerine " + b + " olacak.",
+    conf_band: (lo, hi) => "Isıtma hedefin " + lo + " altında başlayıp " + hi + " üstünde duracak.",
+    conf_equal: (h, half) => "Histeresiz " + h + " olacak ve eşit bölünecek: hedefin " + half + " altı ve üstü.",
     conf_dwell: (a, b) => "Röle koruması " + a + " yerine " + b + " olacak.",
     conf_sensor: (mac) => "Termostat " + mac + " sensörüne göre çalışacak.",
     conf_now: " Değişiklik hemen uygulanır.",
@@ -1239,7 +1273,7 @@ const L = {
     m_temp: "Температура", m_hum: "Влажность",
     heating: "Отопление",
     target_temp: "Целевая температура",
-    sp_down: "Понизить цель на 0,5 °C", sp_up: "Повысить цель на 0,5 °C",
+    sp_down: "Понизить цель", sp_up: "Повысить цель",
     op_mode: "Режим работы",
     mode_program: "Расписание", mode_manual: "Ручной", mode_off: "Выкл.",
     cancel: "Отмена", apply: "Применить",
@@ -1263,6 +1297,9 @@ const L = {
     hysteresis: "Гистерезис",
     hyst_default: "По умолчанию (1,0 °C)",
     hyst_down: "Уменьшить гистерезис на 0,1 °C", hyst_up: "Увеличить гистерезис на 0,1 °C",
+    band_equal: "Поровну", band_split: "Раздельно",
+    band_below: "Включение: ниже цели на", band_above: "Выключение: выше цели на",
+    band_down: "Уменьшить на 0,1 °C", band_up: "Увеличить на 0,1 °C",
     dwell: "Защита реле",
     dwell_default: "По умолчанию (3 мин)",
     dwell_min_down: "Уменьшить на минуту", dwell_min_up: "Увеличить на минуту",
@@ -1488,6 +1525,8 @@ const L = {
       : "NO (нормально разомкнутый): котёл подключён к контактам COM и NO реле. При нагреве реле включено, в ожидании отпущено. Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается, и котёл не греет.",
     conf_relay: (c) => "Подключение реле станет " + c + "; котёл должен быть подключён к контактам COM и " + c + " реле.",
     conf_hyst: (a, b) => "Гистерезис изменится с " + a + " на " + b + ".",
+    conf_band: (lo, hi) => "Нагрев будет включаться на " + lo + " ниже цели и выключаться на " + hi + " выше.",
+    conf_equal: (h, half) => "Гистерезис станет " + h + " и разделится поровну: на " + half + " ниже и выше цели.",
     conf_dwell: (a, b) => "Защита реле изменится с " + a + " на " + b + ".",
     conf_sensor: (mac) => "Термостат будет работать по датчику " + mac + ".",
     conf_now: " Изменение вступит в силу сразу.",
@@ -1598,6 +1637,9 @@ let sched = null;       // the week as saved on the device: 7 days of [minute, �
 let schedEdit = null;   // the week being edited
 let schedDay = -1;
 let advHyst = null;     // hysteresis being edited
+let advSplit = false;   // start and stop limits set apart
+let advBelow = 0.5;     // apart: heating starts this far below the target
+let advAbove = 0.5;     // ... and stops this far above it
 let advSensor = "";     // control sensor being edited
 let advRelay = null;    // relay contact being edited: "nc" or "no"
 let advDwell = null;    // relay dwell being edited
@@ -1674,7 +1716,10 @@ function fmtTime(ms) { return new Date(ms).toLocaleTimeString(t("locale"), { hou
 function fmtDay(ms) { return new Date(ms).toLocaleDateString(t("locale"), { day: "numeric", month: "short" }); }
 function fmtDateTime(ms) { return new Date(ms).toLocaleString(t("locale"), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
 const fmtAgo = (s) => t("ago", s);
-const fmtC = (v) => nf1.format(v) + NBSP + "°C";
+const fmtC = (v) => nf12.format(v) + NBSP + "°C";  // 21,0 · 21,25 · 0,15
+// The target step: 0.25 °C on a device that says so, 0.5 °C before that version.
+const tStep = () => (status && status.thermostat && status.thermostat.temp_step) || 0.5;
+const toStep = (v, step) => Math.round(Math.round(v / step) * step * 100) / 100;
 const pct = (v) => t("pct", v);
 const sameNum = (a, b) => Math.abs(a - b) < 1e-6;
 const whenText = (next, clock) => t("when", next, clock);
@@ -2072,7 +2117,7 @@ function renderThermo() {
   if (target == null) {
     value.textContent = th ? t("mode_off") : "—";
   } else {
-    value.textContent = nf1.format(target);
+    value.textContent = nf12.format(target);
     const unit = document.createElement("span");
     unit.className = "unit";
     unit.textContent = "°C";
@@ -2120,13 +2165,13 @@ function stepTarget(delta) {
   const th = status && status.thermostat;
   const base = baseTarget(th, shownMode(th));
   if (base == null) return;
-  const next = Math.min(T_MAX, Math.max(T_MIN, Math.round(((ctlTarget != null ? ctlTarget : base) + delta) * 2) / 2));
+  const next = Math.min(T_MAX, Math.max(T_MIN, toStep((ctlTarget != null ? ctlTarget : base) + delta, tStep())));
   ctlTarget = sameNum(next, base) ? null : next;
   showMsg("control-msg");
   renderThermo();
 }
-$("sp-down").addEventListener("click", () => stepTarget(-0.5));
-$("sp-up").addEventListener("click", () => stepTarget(0.5));
+$("sp-down").addEventListener("click", () => stepTarget(-tStep()));
+$("sp-up").addEventListener("click", () => stepTarget(tStep()));
 onSeg("seg-thermo", (mode) => {
   const th = status && status.thermostat;
   ctlMode = th && mode === th.mode ? null : mode;
@@ -2239,7 +2284,7 @@ function renderDayBar() {
     el.style.flex = String(b - a);
     el.style.background = "rgba(var(--temp-rgb), " + (0.16 + 0.6 * (hi > lo ? (tmp - lo) / (hi - lo) : 0.5)).toFixed(2) + ")";
     el.title = hhmm(a) + "–" + hhmm(b) + " · " + fmtC(tmp);
-    if (b - a >= 130) el.textContent = nf1.format(tmp) + "°";
+    if (b - a >= 130) el.textContent = nf12.format(tmp) + "°";
     return el;
   });
   const clock = status && status.thermostat && status.thermostat.clock;
@@ -2274,8 +2319,8 @@ function renderSlots() {
     });
     const value = document.createElement("span");
     value.className = "temp-value";
-    const minus = iconButton("minus", t("temp_down"), () => stepSlot(-0.5));
-    const plus = iconButton("plus", t("temp_up"), () => stepSlot(0.5));
+    const minus = iconButton("minus", t("temp_down"), () => stepSlot(-tStep()));
+    const plus = iconButton("plus", t("temp_up"), () => stepSlot(tStep()));
     const paint = () => {
       value.textContent = fmtC(slot[1]);
       minus.disabled = slot[1] <= T_MIN;
@@ -2283,7 +2328,7 @@ function renderSlots() {
     };
     // Updated in place, so quick taps keep landing on the same buttons.
     const stepSlot = (delta) => {
-      slot[1] = clampT(slot[1] + delta);
+      slot[1] = clampT(toStep(slot[1] + delta, tStep()));
       paint();
       renderDayBar();
       $("prog-confirm").hidden = !programEdited();
@@ -2363,6 +2408,9 @@ function renderAdvanced(reset) {
   if (!th) return;
   if (reset || advHyst == null) {
     advHyst = th.hysteresis;
+    advSplit = !!th.split;
+    advBelow = th.below != null ? th.below : th.hysteresis / 2;
+    advAbove = th.above != null ? th.above : th.hysteresis / 2;
     advSensor = th.sensor;
     advRelay = th.relay;
     advDwell = th.dwell_s;
@@ -2377,12 +2425,26 @@ function renderAdvanced(reset) {
   const dwellHelp = $("dwell-help");
   dwellHelp.dataset.t = advDwell ? "dwell_help" : "dwell_help_off";
   dwellHelp.textContent = t(dwellHelp.dataset.t);
+  // Apart only on a device version that takes it (it sends "below").
+  const apart = th.below != null && advSplit;
+  $("seg-band").hidden = th.below == null;
+  setSeg("seg-band", apart ? "split" : "equal");
+  $("hyst-equal").hidden = apart;
+  $("hyst-split").hidden = !apart;
   $("hyst-value").textContent = fmtC(advHyst);
   $("hyst-down").disabled = advHyst <= H_MIN + 1e-6;
   $("hyst-up").disabled = advHyst >= H_MAX - 1e-6;
-  $("hyst-default").hidden = sameNum(advHyst, H_DEFAULT);
+  $("below-value").textContent = fmtC(advBelow);
+  $("above-value").textContent = fmtC(advAbove);
+  $("below-down").disabled = !canBand(advBelow - B_STEP, advAbove);
+  $("below-up").disabled = !canBand(advBelow + B_STEP, advAbove);
+  $("above-down").disabled = !canBand(advBelow, advAbove - B_STEP);
+  $("above-up").disabled = !canBand(advBelow, advAbove + B_STEP);
+  $("hyst-default").hidden = !apart && sameNum(advHyst, H_DEFAULT);
   const example = th.mode !== "off" ? th.target : 21;
-  $("hyst-help").textContent = t("hyst_help", fmtC(example), nf12.format(example - advHyst / 2), nf12.format(example + advHyst / 2));
+  const lo = apart ? advBelow : advHyst / 2;
+  const hi = apart ? advAbove : advHyst / 2;
+  $("hyst-help").textContent = t("hyst_help", fmtC(example), nf12.format(example - lo), nf12.format(example + hi));
 
   const sensors = status.sensors;
   const many = sensors.length > 1;
@@ -2400,7 +2462,7 @@ function renderAdvanced(reset) {
   setSeg("seg-relay", advRelay);
   $("relay-default").hidden = advRelay === "nc";
   $("relay-help").textContent = t("relay_help", advRelay === "nc");
-  $("adv-actions").hidden = sameNum(advHyst, th.hysteresis) && advDwell === th.dwell_s &&
+  $("adv-actions").hidden = !bandEdited(th) && advDwell === th.dwell_s &&
     (!many || advSensor === th.sensor) && advRelay === th.relay;
 }
 
@@ -2408,7 +2470,33 @@ const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
 
 holdRepeat($("hyst-down"), () => { advHyst = Math.max(H_MIN, roundTenth(advHyst - 0.1)); renderAdvanced(false); });
 holdRepeat($("hyst-up"), () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
-$("hyst-default").addEventListener("click", () => { advHyst = H_DEFAULT; renderAdvanced(false); });
+$("hyst-default").addEventListener("click", () => { advSplit = false; advHyst = H_DEFAULT; renderAdvanced(false); });
+
+// The start and stop limits apart, in 0.1 °C steps; the device keeps 0.05 °C,
+// as half of an odd tenth (0.3 split equally is 0.15 each).
+const B_STEP = 0.1;
+const B_MAX = 3;
+const roundBand = (v) => Math.round(v * 20) / 20;
+const canBand = (lo, hi) => lo > -1e-6 && hi > -1e-6 && lo < B_MAX + 1e-6 && hi < B_MAX + 1e-6 && lo + hi > H_MIN - 1e-6;
+function bandEdited(th) {
+  if (th.below == null) return !sameNum(advHyst, th.hysteresis);
+  if (advSplit !== !!th.split) return true;
+  return advSplit ? !sameNum(advBelow, th.below) || !sameNum(advAbove, th.above) : !sameNum(advHyst, th.hysteresis);
+}
+onSeg("seg-band", (v) => {
+  if (v === "split" && !advSplit) {
+    advBelow = roundBand(advHyst / 2);  // apart from the equal halves
+    advAbove = roundBand(advHyst / 2);
+  } else if (v === "equal" && advSplit) {
+    advHyst = Math.min(H_MAX, Math.max(H_MIN, roundTenth(advBelow + advAbove)));  // the same band, split equally
+  }
+  advSplit = v === "split";
+  renderAdvanced(false);
+});
+holdRepeat($("below-down"), () => { advBelow = roundBand(advBelow - B_STEP); renderAdvanced(false); });
+holdRepeat($("below-up"), () => { advBelow = roundBand(advBelow + B_STEP); renderAdvanced(false); });
+holdRepeat($("above-down"), () => { advAbove = roundBand(advAbove - B_STEP); renderAdvanced(false); });
+holdRepeat($("above-up"), () => { advAbove = roundBand(advAbove + B_STEP); renderAdvanced(false); });
 // The time is kept in seconds: 0:59 + 1 s is 1:00, so the seconds reach every value too.
 function stepDwell(by) {
   advDwell = Math.min(D_MAX, Math.max(D_MIN, advDwell + by));
@@ -2428,9 +2516,16 @@ $("adv-form").addEventListener("submit", async (e) => {
   const th = status.thermostat;
   const body = {};
   const changes = [];
-  if (!sameNum(advHyst, th.hysteresis)) {
-    body.hysteresis = advHyst;
-    changes.push(t("conf_hyst", fmtC(th.hysteresis), fmtC(advHyst)));
+  if (bandEdited(th)) {
+    if (th.below != null && advSplit) {
+      body.below = advBelow;
+      body.above = advAbove;
+      changes.push(t("conf_band", fmtC(advBelow), fmtC(advAbove)));
+    } else {
+      body.hysteresis = advHyst;
+      changes.push(th.split ? t("conf_equal", fmtC(advHyst), fmtC(advHyst / 2))
+        : t("conf_hyst", fmtC(th.hysteresis), fmtC(advHyst)));
+    }
   }
   if (advDwell !== th.dwell_s) {
     body.dwell_s = advDwell;
@@ -2857,7 +2952,7 @@ function renderTable() {
     for (const text of [fmtDateTime(hist.times[i]),
                         hist.t[i] == null ? "—" : nf2.format(hist.t[i]),
                         hist.h[i] == null ? "—" : nf2.format(hist.h[i]),
-                        hist.sp[i] == null ? "—" : nf1.format(hist.sp[i]),
+                        hist.sp[i] == null ? "—" : nf12.format(hist.sp[i]),
                         heatText(hist.on[i], "on_lc")]) {
       const td = document.createElement("td");
       td.textContent = text;
