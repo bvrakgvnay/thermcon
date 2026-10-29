@@ -2476,7 +2476,11 @@ async function fetchDeviceHistory() {
 }
 
 // ThingSpeak keeps every minute for good. It returns at most 8000 entries per
-// request, so 7 and 30 days come averaged, in parallel slices of 5 days.
+// request, so 7 and 30 days come in slices of 5 days, a point per 10 or 60 minutes.
+// Anyone with the write key can add entries too: the example link on the
+// channel's API Keys page writes a lone "field1=0". This device's own entries
+// always carry field3 (the boiler), so a minute without it is not plotted, and
+// longer ranges take medians for the temperatures, which a stray value cannot pull.
 async function fetchCloudHistory(c) {
   const base = "https://api.thingspeak.com/channels/" + c.channel + "/feeds.json?round=2&timezone=UTC" +
     (c.read_key ? "&api_key=" + c.read_key : "");
@@ -2489,7 +2493,8 @@ async function fetchCloudHistory(c) {
     const end = Date.now();
     const begin = end - rangeH * HOUR;
     for (let from = begin; from < end; from += 120 * HOUR) {
-      urls.push(base + "&average=" + minutes + "&start=" + utc(from) + "&end=" + utc(Math.min(end, from + 120 * HOUR)));
+      const span = "&start=" + utc(from) + "&end=" + utc(Math.min(end, from + 120 * HOUR));
+      urls.push(base + "&average=" + minutes + span, base + "&median=" + minutes + span);
     }
   }
   const parts = await Promise.all(urls.map(async (u) => {
@@ -2498,15 +2503,25 @@ async function fetchCloudHistory(c) {
     return r.json();
   }));
   // ThingSpeak drops values for fields the channel hasn't turned on.
-  if (!(parts[0].channel || {}).field1) throw new Error("field1");
-  const feeds = parts.flatMap((p) => p.feeds || []);
+  const channel = parts[0].channel || {};
+  if (!channel.field1) throw new Error("field1");
   const num = (v) => (v == null || v === "" || isNaN(v) ? null : Number(v));
+  let feeds;
+  let median = new Map();
+  if (rangeH <= 24) {
+    feeds = parts[0].feeds || [];
+    if (channel.field3) feeds = feeds.filter((f) => num(f.field3) != null);  // this device's own minutes only
+  } else {
+    feeds = parts.filter((_, i) => i % 2 === 0).flatMap((p) => p.feeds || []);
+    for (const f of parts.filter((_, i) => i % 2 === 1).flatMap((p) => p.feeds || [])) median.set(f.created_at, f);
+  }
+  const temps = (f) => median.get(f.created_at) || f;
   return {
     times: feeds.map((f) => Date.parse(f.created_at)),
-    t: feeds.map((f) => num(f.field1)),
-    h: feeds.map((f) => num(f.field2)),
+    t: feeds.map((f) => num(temps(f).field1)),
+    h: feeds.map((f) => num(temps(f).field2)),
     on: feeds.map((f) => num(f.field3)),  // 0 or 1 a minute, a share of the time when averaged; null unknown
-    sp: feeds.map((f) => num(f.field4)),
+    sp: feeds.map((f) => num(temps(f).field4)),
     period: minutes * 60e3,
   };
 }
