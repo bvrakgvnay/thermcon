@@ -306,6 +306,48 @@ th:first-child, td:first-child { text-align: left; }
 .dialog form { margin: 0; }
 .dialog-title { margin: 0 0 8px; font-size: 17px; font-weight: 650; }
 .dialog-text { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+/* Kontrol: the modes in two rows, a single choice; what the chosen one does below. */
+.modes .mode-label { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.modes .segmented + .mode-label { margin-top: 10px; }
+.mode-help { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); text-align: center; }
+/* Açık and Zamanlayıcı in place of the target */
+.mode-panel { padding: 8px 0 2px; text-align: center; }
+.mode-panel .sp-value { font-size: 26px; line-height: 1.3; color: var(--ink); }
+.timer-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.timer-row + .timer-hint + .timer-row, .timer-row + .timer-row { margin-top: 12px; }
+.timer-row .label { margin: 0; font-size: 14px; color: var(--ink); }
+.timer-row .stepper { gap: 8px; }
+.timer-row .stepper-value { min-width: 76px; font-size: 18px; }
+.stepper-value.pending { color: var(--accent); }
+.timer-hint { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
+.timer-hint .link-btn { margin-left: 4px; }
+/* The room: a card per sensor, side by side, swiped through. */
+.rooms { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.rooms::-webkit-scrollbar { display: none; }
+.rooms > .card { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
+.room-name { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.room-name .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack > .room-dots { margin-top: 8px; }
+.room-dots { display: flex; justify-content: center; gap: 4px; }
+.room-dots button { width: 18px; height: 18px; padding: 0; background: none; border: 0; }
+.room-dots button::before { content: ""; display: block; width: 7px; height: 7px; margin: auto; border-radius: 50%; background: var(--axis); }
+.room-dots button[aria-current="true"]::before { background: var(--ink-2); }
+/* Gelişmiş: the sensors' names */
+.sensor-row + .sensor-row { margin-top: 12px; }
+.sensor-row .sub { margin-top: 4px; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+/* Bildirim */
+.event-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); }
+.event-row:first-child { border-top: 0; padding-top: 0; }
+.event-row .label { margin: 0; font-size: 14px; color: var(--ink); }
+.room-limits { padding: 2px 0 10px; }
+.room-limits .band-row + .band-row { margin-top: 8px; }
+.phone-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 14px; }
+.phone-row:first-child { border-top: 0; padding-top: 0; }
+.phone-row .sub { display: block; font-size: 12.5px; color: var(--muted); }
+#phone-actions { margin-top: 14px; }
+#names-field { margin-top: 14px; }
+/* Five settings tabs on the device's own page: words only on a phone. */
+@media (max-width: 440px) { body:not(.remote) #view-settings .tabs button .icon { display: none; } }
 :lang(ru) #view-thermo .tabs button { font-size: 13px; }  /* longer words: Управление, Расписание */
 @media (max-width: 380px) { .hero-value { font-size: 48px; } .side-value { font-size: 28px; } .tabs button, .subtabs button { font-size: 13px; } .sp-value { font-size: 38px; } }
 </style>
@@ -333,6 +375,7 @@ th:first-child, td:first-child { text-align: left; }
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
 </svg>
 <!-- Every fixed text carries data-t (text), data-t-aria (aria-label) or
@@ -361,31 +404,14 @@ th:first-child, td:first-child { text-align: left; }
 
     <!-- Kontrol -->
     <div id="ths-control" role="tabpanel" aria-labelledby="tht-control" class="stack">
-      <div class="card">
-        <div class="hero">
-          <div>
-            <div class="metric-label"><span class="key" style="background: var(--temp)"></span><span data-t="room_temp">Oda sıcaklığı</span></div>
-            <div class="hero-value"><span id="temp">—</span><span class="unit">°C</span></div>
-          </div>
-          <div class="side">
-            <div class="metric-label"><span class="key" style="background: var(--hum)"></span><span data-t="m_hum">Nem</span></div>
-            <div id="hum" class="side-value">—</div>
-          </div>
-        </div>
-        <div class="meta">
-          <span id="age">Sensör bekleniyor…</span>
-          <span class="meta-items">
-            <span id="bat-item" class="meta-item"><svg class="icon"><use href="#i-battery"/></svg><span id="bat">—</span></span>
-            <span id="sig-item" class="meta-item"><svg class="icon"><use href="#i-signal"/></svg><span id="sig">—</span></span>
-          </span>
-        </div>
-      </div>
+      <div id="rooms" class="rooms" aria-label="Oda sıcaklıkları" data-t-aria="rooms"></div>
+      <div id="room-dots" class="room-dots" hidden></div>
       <div class="card">
         <div class="card-head">
           <span class="card-title"><svg class="icon"><use href="#i-flame"/></svg><span data-t="heating">Isıtma</span></span>
           <span id="heat-badge" class="badge off">—</span>
         </div>
-        <div class="setpoint">
+        <div id="setpoint" class="setpoint">
           <button id="sp-down" class="round-btn" type="button" aria-label="Hedefi düşür" data-t-aria="sp_down"><svg class="icon"><use href="#i-minus"/></svg></button>
           <div class="sp-center">
             <div id="sp-value" class="sp-value" aria-live="polite">—</div>
@@ -393,13 +419,44 @@ th:first-child, td:first-child { text-align: left; }
           </div>
           <button id="sp-up" class="round-btn" type="button" aria-label="Hedefi yükselt" data-t-aria="sp_up"><svg class="icon"><use href="#i-plus"/></svg></button>
         </div>
+        <div id="on-panel" class="mode-panel" hidden>
+          <div class="sp-value" data-t="on_title">Kombi kendi ayarında</div>
+        </div>
+        <div id="timer-panel" hidden>
+          <div class="timer-row">
+            <span class="label" id="timer-label" data-t="timer_per_hour">Her saatin ilk</span>
+            <div class="stepper" role="group" aria-labelledby="timer-label">
+              <button id="timer-down" class="round-btn small" type="button" aria-label="5 dakika azalt" data-t-aria="timer_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+              <span id="timer-value" class="stepper-value" aria-live="polite">—</span>
+              <button id="timer-up" class="round-btn small" type="button" aria-label="5 dakika artır" data-t-aria="timer_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+            </div>
+          </div>
+          <p id="timer-hint" class="timer-hint"></p>
+          <div class="timer-row">
+            <span class="label" id="ceil-label" data-t="timer_ceil">Üst sınır</span>
+            <div class="stepper" role="group" aria-labelledby="ceil-label">
+              <button id="ceil-down" class="round-btn small" type="button" aria-label="0,5 °C azalt" data-t-aria="ceil_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+              <span id="ceil-value" class="stepper-value" aria-live="polite">—</span>
+              <button id="ceil-up" class="round-btn small" type="button" aria-label="0,5 °C artır" data-t-aria="ceil_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+            </div>
+          </div>
+        </div>
         <p id="sp-info" class="sp-info"></p>
         <div class="sep"></div>
-        <div id="seg-thermo" class="segmented block" role="group" aria-label="Çalışma modu" data-t-aria="op_mode">
-          <button type="button" data-value="program" data-t="mode_program">Program</button>
-          <button type="button" data-value="manual" data-t="mode_manual">Manuel</button>
-          <button type="button" data-value="off" data-t="mode_off">Kapalı</button>
+        <div id="seg-thermo" class="modes" role="group" aria-label="Çalışma modu" data-t-aria="op_mode">
+          <div class="mode-label" data-t="modes_target">Hedef sıcaklıkla</div>
+          <div class="segmented block">
+            <button type="button" data-value="program" data-t="mode_program">Program</button>
+            <button type="button" data-value="manual" data-t="mode_manual">Manuel</button>
+          </div>
+          <div class="mode-label" data-t="modes_direct">Hedefsiz</div>
+          <div class="segmented block">
+            <button type="button" data-value="timer" data-t="mode_timer">Zamanlayıcı</button>
+            <button type="button" data-value="on" data-t="mode_on">Açık</button>
+            <button type="button" data-value="off" data-t="mode_off">Kapalı</button>
+          </div>
         </div>
+        <p id="mode-help" class="mode-help"></p>
         <div id="ctl-actions" class="actions" hidden>
           <button id="ctl-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
           <button id="ctl-apply" class="btn btn-primary" type="button" data-t="apply">Uygula</button>
@@ -558,6 +615,11 @@ th:first-child, td:first-child { text-align: left; }
         <dl class="kv">
           <div id="adv-sensor-row"><dt data-t="ctl_sensor">Kontrol sensörü</dt><dd id="adv-sensor-v">—</dd></div>
         </dl>
+        <div id="names-field" class="field" hidden>
+          <div class="label" data-t="sensor_names">Sensör isimleri</div>
+          <div id="names-list"></div>
+          <p class="help" data-t="names_help">İsim verilen sensör, etrafta başka sensörler olsa da listeden çıkmaz.</p>
+        </div>
         <div class="sep"></div>
         <div class="field">
           <div class="label-row">
@@ -569,6 +631,21 @@ th:first-child, td:first-child { text-align: left; }
             <button type="button" data-value="no">NO</button>
           </div>
           <p id="relay-help" class="help"></p>
+        </div>
+        <div id="stale-field" hidden>
+          <div class="sep"></div>
+          <div class="field">
+            <div class="label-row">
+              <div class="label" id="stale-label" data-t="stale">Sensör zaman aşımı</div>
+              <button id="stale-default" class="link-btn" type="button" data-t="stale_default" hidden>Varsayılana dön (10 dk)</button>
+            </div>
+            <div class="stepper" role="group" aria-labelledby="stale-label">
+              <button id="stale-down" class="round-btn small" type="button" aria-label="Bir dakika kısalt" data-t-aria="stale_down"><svg class="icon"><use href="#i-minus"/></svg></button>
+              <span id="stale-value" class="stepper-value" aria-live="polite">—</span>
+              <button id="stale-up" class="round-btn small" type="button" aria-label="Bir dakika uzat" data-t-aria="stale_up"><svg class="icon"><use href="#i-plus"/></svg></button>
+            </div>
+            <p id="stale-help" class="help"></p>
+          </div>
         </div>
         <div id="adv-actions" class="actions" hidden>
           <button id="adv-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
@@ -585,6 +662,7 @@ th:first-child, td:first-child { text-align: left; }
     <button id="tab-wifi" class="local-only" role="tab" aria-controls="panel-wifi" aria-selected="true"><svg class="icon"><use href="#i-wifi"/></svg><span>Wi-Fi</span></button>
     <button id="tab-ap" class="local-only" role="tab" aria-controls="panel-ap" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-ap"/></svg><span>AP</span></button>
     <button id="tab-cloud" role="tab" aria-controls="panel-cloud" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-cloud"/></svg><span data-t="tab_cloud">Bulut</span></button>
+    <button id="tab-notify" role="tab" aria-controls="panel-notify" aria-selected="false" tabindex="-1" hidden><svg class="icon"><use href="#i-bell"/></svg><span data-t="tab_notify">Bildirim</span></button>
     <button id="tab-general" role="tab" aria-controls="panel-general" aria-selected="false" tabindex="-1"><svg class="icon"><use href="#i-globe"/></svg><span data-t="tab_general">Genel</span></button>
   </nav>
 
@@ -804,6 +882,39 @@ th:first-child, td:first-child { text-align: left; }
   </section>
 
   <!-- Genel -->
+  <section id="panel-notify" role="tabpanel" aria-labelledby="tab-notify" class="stack" hidden>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title"><svg class="icon"><use href="#i-phone"/></svg><span data-t="this_phone">Bu telefon</span></span>
+        <span id="phone-badge" class="badge off">—</span>
+      </div>
+      <p id="phone-text" class="help"></p>
+      <div id="phone-actions" class="actions">
+        <button id="phone-test" class="btn btn-secondary" type="button" data-t="push_test" hidden>Test bildirimi</button>
+        <button id="phone-toggle" class="btn btn-primary" type="button" hidden>Bu telefonda aç</button>
+      </div>
+    </div>
+    <form id="notify-form" class="card" autocomplete="off">
+      <div class="card-head"><span class="card-title"><svg class="icon"><use href="#i-bell"/></svg><span data-t="notify_title">Bildirimler</span></span></div>
+      <div class="switch-row">
+        <label class="label" for="notify-on" data-t="notify_on">Bildirimler açık</label>
+        <input id="notify-on" class="switch" type="checkbox">
+      </div>
+      <p class="help" data-t="notify_off_help">Kapalıyken hiçbir telefona bildirim gönderilmez (test bildirimi hariç).</p>
+      <div class="sep"></div>
+      <div id="events"></div>
+      <div id="notify-actions" class="actions" hidden>
+        <button id="notify-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="notify-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+      </div>
+    </form>
+    <div class="card">
+      <div class="card-head"><span class="card-title" data-t="phones">Telefonlar</span></div>
+      <div id="phones"></div>
+    </div>
+    <div id="notify-msg" role="alert"></div>
+  </section>
+
   <section id="panel-general" role="tabpanel" aria-labelledby="tab-general" class="stack" hidden>
     <div class="card">
       <div class="card-head"><span class="card-title"><svg class="icon"><use href="#i-globe"/></svg><span data-t="language">Dil</span></span></div>
@@ -912,6 +1023,15 @@ const D_MIN = 0;          // relay dwell, seconds
 const D_MAX = 600;
 const D_DEFAULT = 180;
 const MAX_SLOTS = 6;      // program periods a day
+const TM_MIN = 10;        // Zamanlayıcı: minutes of heat an hour, in steps of 5
+const TM_MAX = 50;
+const TM_STEP = 5;
+const CEIL_MIN = 18;      // ... skipped from this room temperature up, in 0.5 °C steps
+const CEIL_MAX = 30;
+const CEIL_STEP = 0.5;
+const ST_MIN = 2;         // sensor timeout, minutes
+const ST_MAX = 30;
+const ST_DEFAULT = 10;
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const utf8Len = (s) => new TextEncoder().encode(s).length;
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -1244,6 +1364,78 @@ const L = {
     ch_sec: (s) => "Güvenlik " + s + " olacak.",
     ch_pass: "Şifre değişecek; Wi-Fi ayarları da yeni şifreyle korunacak.",
     ch_restart: "Erişim noktası yeniden açılacak, ona bağlı cihazların yeniden bağlanması gerekecek.",
+    rooms: "Oda sıcaklıkları",
+    ctl_badge: "Kontrol",
+    modes_target: "Hedef sıcaklıkla",
+    modes_direct: "Hedefsiz",
+    mode_on: "Açık", mode_timer: "Zamanlayıcı",
+    help_program: "Program: haftalık programdaki hedef sıcaklıkları izler.",
+    help_manual: "Manuel: hedef sıcaklık siz değiştirene kadar sabit kalır.",
+    help_timer: "Zamanlayıcı: oda sıcaklığına bakmadan her saatin ilk dakikalarında ısıtır. Sensör çalışıyorsa donma korumasını ve üst sınırı yine gözetir.",
+    help_on: "Açık: termostat devre dışı; kombi sürekli kendi ön panel ayarıyla çalışır.",
+    help_off: "Kapalı: ısıtma yok; ev 5" + NBSP + "°C'nin altına inerse donma koruması devreye girer.",
+    on_title: "Kombi kendi ayarında",
+    timer_per_hour: "Her saatin ilk",
+    timer_down: "5 dakika azalt", timer_up: "5 dakika artır",
+    timer_ceil: "Üst sınır",
+    ceil_down: "0,5" + NBSP + "°C azalt", ceil_up: "0,5" + NBSP + "°C artır",
+    min_n: (n) => n + NBSP + "dk",
+    timer_duty: (m, h) => "Son " + h + " saatte kombi saatte ortalama " + m + NBSP + "dk çalıştı.",
+    use_it: "Kullan",
+    info_timer_on: (at) => "Isıtıyor · " + at + " duracak.",
+    info_timer_off: (at) => "Sonraki ısıtma " + at + " başlayacak.",
+    info_timer_skip: (ceil, at) => "Oda " + ceil + " ya da üstünde; bu saatin ısıtması atlandı. Sonraki " + at + ".",
+    conf_timer: (m) => "Zamanlayıcı her saatin ilk " + m + " dakikasında ısıtacak.",
+    conf_ceil: (c) => "Oda " + c + " ya da üstündeyse o saatin ısıtması atlanacak.",
+    sensor_names: "Sensör isimleri",
+    name_placeholder: "İsim (ör. Salon)",
+    name_aria: (mac) => mac + " sensörünün adı",
+    stock_unreadable: "orijinal yazılım, okunamıyor",
+    conf_name: (mac, name) => name ? mac + " sensörünün adı “" + name + "” olacak." : mac + " sensörünün adı silinecek.",
+    err_name: "Sensör adı kaydedilemedi.",
+    stale: "Sensör zaman aşımı",
+    stale_default: "Varsayılana dön (10" + NBSP + "dk)",
+    stale_down: "Bir dakika kısalt", stale_up: "Bir dakika uzat",
+    stale_help: (nc) => "Sensörden bu kadar süre ölçüm gelmezse arıza sayılır ve röle bırakılır" +
+      (nc ? "; NC bağlantıda kombi kendi ayarıyla çalışır." : "; NO bağlantıda kombi durur.") +
+      " Zayıf sinyalde kısa süre gereksiz arızaya yol açar.",
+    conf_stale: (a, b) => "Sensör zaman aşımı " + a + " yerine " + b + " olacak.",
+    tab_notify: "Bildirim",
+    this_phone: "Bu telefon",
+    phone_on: "Açık", phone_off: "Kapalı",
+    push_on_btn: "Bu telefonda aç", push_off_btn: "Kapat", push_test: "Test bildirimi",
+    push_text_on: "Bu telefon bildirim alıyor.",
+    push_text_off: "Bu telefon bildirim almıyor.",
+    push_local_only: "Bildirimler, telefona ana ekrandan eklenen Thermcon uygulamasında (uzaktan erişim sayfası) açılır.",
+    push_ios_homescreen: "iPhone'da bildirimler yalnızca ana ekrana eklenen uygulamada çalışır: Paylaş › Ana Ekrana Ekle, sonra Thermcon'u ana ekrandan açın.",
+    push_unsupported: "Bu tarayıcı bildirimleri desteklemiyor.",
+    push_denied: "Bildirim izni verilmedi. Telefonun ayarlarından Thermcon'a bildirim izni verin.",
+    push_failed: "Bildirimler açılamadı: ",
+    push_test_sent: "Test bildirimi gönderildi; birkaç saniye içinde gelir.",
+    conf_push_off: "Bu telefon artık bildirim almayacak.",
+    yes_off: "Evet, kapat",
+    notify_title: "Bildirimler",
+    notify_on: "Bildirimler açık",
+    notify_off_help: "Kapalıyken hiçbir telefona bildirim gönderilmez (test bildirimi hariç).",
+    ev_sensor: "Sensörden veri gelmedi / yeniden geldi",
+    ev_battery: "Sensör pili %20'nin altında",
+    ev_long_run: "Kombi 2 saattir aralıksız çalışıyor",
+    ev_room: "Oda sıcaklığı sınırların dışında",
+    ev_online: "Elektrik ya da internet kesintisinden sonra",
+    ev_ap: "Cihazın yedek Wi-Fi ağı açıldı",
+    ev_update: "Yazılım güncellendi ya da geri dönüldü",
+    room_low: "Alt sınır", room_high: "Üst sınır",
+    conf_notify: "Bildirim ayarları değişecek.",
+    phones: "Telefonlar",
+    no_phones: "Henüz bildirim alan telefon yok.",
+    phone_added: (when) => "eklendi " + when,
+    remove: "Kaldır",
+    conf_phone_remove: (label) => "“" + label + "” artık bildirim almayacak.",
+    yes_remove: "Evet, kaldır",
+    this_phone_tag: "bu telefon",
+    browser: "Tarayıcı",
+    err_load: "Cihazdan alınamadı.",
+    err_phones: "En fazla 4 telefon bildirim alabilir; önce birini kaldır.",
   },
   ru: {
     locale: "ru-RU",
@@ -1562,6 +1754,78 @@ const L = {
     ch_sec: (s) => "Тип защиты станет " + s + ".",
     ch_pass: "Пароль изменится; настройки Wi-Fi тоже будут защищены новым паролем.",
     ch_restart: "Точка доступа перезапустится; подключённым устройствам нужно будет подключиться заново.",
+    rooms: "Температура в комнатах",
+    ctl_badge: "Управляет",
+    modes_target: "По температуре",
+    modes_direct: "Без цели",
+    mode_on: "Вкл.", mode_timer: "Таймер",
+    help_program: "Расписание: держит температуры из недельного расписания.",
+    help_manual: "Ручной: целевая температура держится, пока вы её не измените.",
+    help_timer: "Таймер: греет первые минуты каждого часа, не глядя на температуру. Если датчик работает, по-прежнему следит за защитой от замерзания и верхней границей.",
+    help_on: "Вкл.: термостат отключён; котёл постоянно работает по своим настройкам на передней панели.",
+    help_off: "Выкл.: отопления нет; если в доме станет ниже 5" + NBSP + "°C, включится защита от замерзания.",
+    on_title: "Котёл по своим настройкам",
+    timer_per_hour: "Первые минуты часа",
+    timer_down: "Уменьшить на 5 минут", timer_up: "Увеличить на 5 минут",
+    timer_ceil: "Верхняя граница",
+    ceil_down: "Уменьшить на 0,5" + NBSP + "°C", ceil_up: "Увеличить на 0,5" + NBSP + "°C",
+    min_n: (n) => n + NBSP + "мин",
+    timer_duty: (m, h) => "За последние " + h + NBSP + "ч котёл работал в среднем " + m + NBSP + "мин в час.",
+    use_it: "Взять",
+    info_timer_on: (at) => "Греет · остановится в " + at + ".",
+    info_timer_off: (at) => "Следующий нагрев начнётся в " + at + ".",
+    info_timer_skip: (ceil, at) => "В комнате " + ceil + " или теплее; нагрев в этот час пропущен. Следующий в " + at + ".",
+    conf_timer: (m) => "Таймер будет греть первые " + m + NBSP + "мин каждого часа.",
+    conf_ceil: (c) => "Если в комнате " + c + " или теплее, нагрев в этот час будет пропущен.",
+    sensor_names: "Названия датчиков",
+    name_placeholder: "Название (напр. Гостиная)",
+    name_aria: (mac) => "Название датчика " + mac,
+    stock_unreadable: "заводская прошивка, не читается",
+    conf_name: (mac, name) => name ? "Датчик " + mac + " будет называться «" + name + "»." : "Название датчика " + mac + " будет удалено.",
+    err_name: "Не удалось сохранить название датчика.",
+    stale: "Тайм-аут датчика",
+    stale_default: "По умолчанию (10" + NBSP + "мин)",
+    stale_down: "Уменьшить на минуту", stale_up: "Увеличить на минуту",
+    stale_help: (nc) => "Если от датчика так долго нет измерений, это считается неисправностью и реле отпускается" +
+      (nc ? "; при NC котёл работает по своим настройкам." : "; при NO котёл останавливается.") +
+      " При слабом сигнале короткий тайм-аут даёт ложные срабатывания.",
+    conf_stale: (a, b) => "Тайм-аут датчика: " + b + " вместо " + a + ".",
+    tab_notify: "Уведомл.",
+    this_phone: "Этот телефон",
+    phone_on: "Вкл.", phone_off: "Выкл.",
+    push_on_btn: "Включить здесь", push_off_btn: "Выключить", push_test: "Тестовое уведомление",
+    push_text_on: "Этот телефон получает уведомления.",
+    push_text_off: "Этот телефон не получает уведомления.",
+    push_local_only: "Уведомления включаются в приложении Thermcon, добавленном на главный экран телефона (страница удалённого доступа).",
+    push_ios_homescreen: "На iPhone уведомления работают только в приложении с главного экрана: Поделиться › На экран «Домой», затем откройте Thermcon с главного экрана.",
+    push_unsupported: "Этот браузер не поддерживает уведомления.",
+    push_denied: "Разрешение на уведомления не дано. Разрешите их для Thermcon в настройках телефона.",
+    push_failed: "Не удалось включить уведомления: ",
+    push_test_sent: "Тестовое уведомление отправлено; оно придёт через несколько секунд.",
+    conf_push_off: "Этот телефон больше не будет получать уведомления.",
+    yes_off: "Да, выключить",
+    notify_title: "Уведомления",
+    notify_on: "Уведомления включены",
+    notify_off_help: "Когда выключено, уведомления не отправляются ни на один телефон (кроме тестового).",
+    ev_sensor: "Нет данных от датчика / данные снова есть",
+    ev_battery: "Батарея датчика ниже 20" + NBSP + "%",
+    ev_long_run: "Котёл работает 2" + NBSP + "ч без перерыва",
+    ev_room: "Температура в комнате вне границ",
+    ev_online: "После отключения питания или интернета",
+    ev_ap: "Открыта резервная сеть Wi-Fi устройства",
+    ev_update: "Прошивка обновлена или откачена",
+    room_low: "Нижняя граница", room_high: "Верхняя граница",
+    conf_notify: "Настройки уведомлений изменятся.",
+    phones: "Телефоны",
+    no_phones: "Пока ни один телефон не получает уведомления.",
+    phone_added: (when) => "добавлен " + when,
+    remove: "Удалить",
+    conf_phone_remove: (label) => "«" + label + "» больше не будет получать уведомления.",
+    yes_remove: "Да, удалить",
+    this_phone_tag: "этот телефон",
+    browser: "Браузер",
+    err_load: "Не удалось получить данные с устройства.",
+    err_phones: "Уведомления могут получать не больше 4 телефонов; сначала удалите один.",
   },
 };
 
@@ -1644,6 +1908,10 @@ let advSensor = "";     // control sensor being edited
 let advRelay = null;    // relay contact being edited: "nc" or "no"
 let advDwell = null;    // relay dwell being edited
 let langEdit = null;    // language chosen on Genel but not applied yet
+let ctlTimer = null;    // Zamanlayıcı minutes chosen on Kontrol but not applied yet
+let ctlCeil = null;     // ... and its ceiling
+let advNames = {};      // sensor names being edited, by MAC
+let advStale = null;    // sensor timeout being edited, minutes
 
 try {
   rangeH = Number(localStorage.getItem("range")) || 6;
@@ -1792,8 +2060,8 @@ function confirmDialog(title, text, okLabel) {
 
 // The thermostat is the main page; the gear opens the settings page with
 // the Wi-Fi, AP and Genel tabs. A phone joining the access point lands on /setup.
-const SETTINGS_TABS = ["wifi", "ap", "cloud", "general"];
-const PATHS = { thermo: "/", wifi: "/setup", ap: "/ap", cloud: "/bulut", general: "/genel" };
+const SETTINGS_TABS = ["wifi", "ap", "cloud", "notify", "general"];
+const PATHS = { thermo: "/", wifi: "/setup", ap: "/ap", cloud: "/bulut", notify: "/bildirim", general: "/genel" };
 const tabFromPath = (p) => Object.keys(PATHS).find((k) => k !== "thermo" && PATHS[k] === p) || "thermo";
 // The view a history entry stands for. Locally every view has its own address;
 // the remote page has a single one, so its entries carry the view instead.
@@ -1827,6 +2095,7 @@ function showTab(name, how) {
   if (name === "ap") loadAp();
   if (name === "cloud") { showMsg("cloud-msg"); loadCloud(); if (!$("cls-remote").hidden) loadRemote(); }
   if (name === "general") { langEdit = null; renderLang(); showMsg("lang-msg"); loadFirmware(); }
+  if (name === "notify") { pushEdit = null; showMsg("notify-msg"); loadPush(); }
   window.scrollTo(0, 0);
 }
 
@@ -2000,12 +2269,12 @@ function syncClock() {
 function renderSensorPicker() {
   const sel = $("sensor");
   const list = status ? status.sensors : [];
-  sel.hidden = list.length < 2;
+  sel.hidden = list.length < 2 || REMOTE;  // remotely only the control sensor's cloud history exists
   if (sel.hidden) return;
-  const key = lang + list.map((s) => s.mac).join();
+  const key = lang + list.map((s) => s.mac + (s.name || "")).join();
   if (sel.dataset.key !== key) {
     sel.dataset.key = key;
-    sel.replaceChildren(...list.map((s, i) => new Option(t("sensor_n", s.mac.slice(-8)), i)));
+    sel.replaceChildren(...list.map((s, i) => new Option(sensorName(s), i)));
   }
   sel.value = sensor;
 }
@@ -2019,15 +2288,10 @@ function renderStatus() {
   $("reboot").classList.toggle("spin", rebootAt !== 0);
   $("reboot").disabled = offline && !rebootAt;
   $("gear-dot").hidden = !(status && status.ap.default_pass) || REMOTE;
+  // Notifications on a firmware that sends them (it says "push").
+  $("tab-notify").hidden = !(status && status.push);
   renderSensorPicker();
-
-  $("temp").textContent = s && s.t != null ? nf1.format(s.t) : "—";
-  $("hum").textContent = s && s.h != null ? pct(nf0.format(s.h)) : "—";
-  $("age").textContent = age == null ? t("waiting_sensor") : t("last_reading", fmtAgo(age));
-  $("bat").textContent = s && s.bat ? pct(s.bat) : "—";
-  $("bat-item").title = s && s.mv ? t("battery_v", nf2.format(s.mv / 1000)) : t("battery");
-  $("sig").textContent = s ? bleQuality(s.rssi) : "—";
-  $("sig-item").title = s ? t("signal_dbm", s.rssi) : t("sensor_signal");
+  renderRooms();
 
   const fresh = !offline && age != null && age < STALE_S;
   if (rebootAt) setBadge($("live"), "warn", t("live_reboot"));
@@ -2062,6 +2326,83 @@ function renderStatus() {
   if (!$("panel-ap").hidden && status) $("uptime-v").textContent = fmtAgo(status.uptime_s + (Date.now() - statusAt) / 1000);
 }
 
+/* ---------- the room: a card per sensor ---------- */
+
+// The sensor in control first, then the others that give readings, by name
+// (a neighbour's that cannot be read is left out).
+function roomSensors() {
+  if (!status) return [];
+  const ctl = controlSensor();
+  const rest = status.sensors.filter((x) => x !== ctl && x.t != null);
+  rest.sort((a, b) => (a.name || "\uffff").localeCompare(b.name || "\uffff") || a.mac.localeCompare(b.mac));
+  return ctl ? [ctl].concat(rest) : rest;
+}
+const sensorName = (x) => x.name || t("sensor_n", x.mac.slice(-8));
+
+function roomCard() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = '<div class="room-name"><span class="nm"></span><span class="badge info ctl"></span></div>' +
+    '<div class="hero"><div><div class="metric-label"><span class="key" style="background: var(--temp)"></span><span class="lt"></span></div>' +
+    '<div class="hero-value"><span class="tv">—</span><span class="unit">°C</span></div></div>' +
+    '<div class="side"><div class="metric-label"><span class="key" style="background: var(--hum)"></span><span class="lh"></span></div>' +
+    '<div class="side-value hv">—</div></div></div>' +
+    '<div class="meta"><span class="age"></span><span class="meta-items">' +
+    '<span class="meta-item bi"><svg class="icon"><use href="#i-battery"/></svg><span class="bv">—</span></span>' +
+    '<span class="meta-item si"><svg class="icon"><use href="#i-signal"/></svg><span class="sv">—</span></span></span></div>';
+  return card;
+}
+
+function fillRoom(card, x, control, named) {
+  const q = (c) => card.querySelector("." + c);
+  const age = sensorAge(x);
+  q("room-name").hidden = !named;
+  q("nm").textContent = x ? sensorName(x) : "";
+  q("ctl").hidden = !control;
+  q("ctl").textContent = t("ctl_badge");
+  q("lt").textContent = t("room_temp");
+  q("lh").textContent = t("m_hum");
+  q("tv").textContent = x && x.t != null ? nf1.format(x.t) : "—";
+  q("hv").textContent = x && x.h != null ? pct(nf0.format(x.h)) : "—";
+  q("age").textContent = age == null ? t("waiting_sensor") : t("last_reading", fmtAgo(age));
+  q("bv").textContent = x && x.bat ? pct(x.bat) : "—";
+  q("bi").title = x && x.mv ? t("battery_v", nf2.format(x.mv / 1000)) : t("battery");
+  q("sv").textContent = x ? bleQuality(x.rssi) : "—";
+  q("si").title = x ? t("signal_dbm", x.rssi) : t("sensor_signal");
+}
+
+// Rebuilt only when the sensors change, so a swipe in progress is not cut short.
+function renderRooms() {
+  const list = roomSensors();
+  const box = $("rooms");
+  const key = lang + "|" + list.map((x) => x.mac + "=" + (x.name || "")).join();
+  if (box.dataset.key !== key) {
+    box.dataset.key = key;
+    box.replaceChildren(...(list.length ? list : [null]).map(roomCard));
+    const dots = $("room-dots");
+    dots.hidden = list.length < 2;
+    dots.replaceChildren(...list.map((x, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", sensorName(x));
+      b.addEventListener("click", () => box.scrollTo({ left: i * (box.clientWidth + 12), behavior: "smooth" }));
+      return b;
+    }));
+  }
+  const named = list.length > 1 || list.some((x) => x.name);
+  const ctl = controlSensor();
+  if (!list.length) fillRoom(box.children[0], null, false, false);
+  list.forEach((x, i) => fillRoom(box.children[i], x, x === ctl && list.length > 1, named));
+  markRoomDot();
+}
+
+function markRoomDot() {
+  const box = $("rooms");
+  const i = box.clientWidth ? Math.round(box.scrollLeft / (box.clientWidth + 12)) : 0;
+  [...$("room-dots").children].forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
+}
+$("rooms").addEventListener("scroll", markRoomDot, { passive: true });
+
 /* ---------- thermostat: Kontrol ---------- */
 
 async function postThermo(body) {
@@ -2090,12 +2431,15 @@ function trackHold(th, at) {
 }
 
 const modeName = (m) => t("mode_" + m);
-const ctlEdited = () => ctlMode != null || ctlTarget != null;
+const ctlEdited = () => ctlMode != null || ctlTarget != null || ctlTimer != null || ctlCeil != null;
 const shownMode = (th) => ctlMode || (th ? th.mode : "");
+// The modes the device takes: older firmware has no "on" and "timer".
+const hasMode = (th, m) => (th && th.modes ? th.modes : ["program", "manual", "off"]).includes(m);
+const direct = (m) => m === "on" || m === "timer";
 
 // The target a mode starts from: the device's own when the mode is unchanged.
 function baseTarget(th, mode) {
-  if (!th || mode === "off") return null;
+  if (!th || mode === "off" || direct(mode)) return null;
   if (mode === th.mode) return th.target;
   if (mode === "manual" || th.program == null) return th.manual;  // the program needs the time
   return th.program;
@@ -2106,7 +2450,7 @@ function renderThermo() {
   const badge = $("heat-badge");
   if (!th) setBadge(badge, "off", "—");
   else if (th.released) setBadge(badge, th.relay === "nc" ? "warn" : "crit", t(th.relay === "nc" ? "badge_own" : "badge_stopped"));
-  else if (th.heating) setBadge(badge, "heat", t(th.mode === "off" ? "badge_frost" : "badge_heating"));
+  else if (th.heating) setBadge(badge, "heat", t(th.mode === "off" || (th.mode === "timer" && th.timer && !th.timer.on) ? "badge_frost" : "badge_heating"));
   else setBadge(badge, "off", t(th.mode === "off" ? "badge_off" : "badge_idle"));
 
   const mode = shownMode(th);
@@ -2125,6 +2469,12 @@ function renderThermo() {
   }
   $("sp-down").disabled = target == null || target <= T_MIN;
   $("sp-up").disabled = target == null || target >= T_MAX;
+  for (const b of $("seg-thermo").querySelectorAll("button")) b.hidden = !hasMode(th, b.dataset.value);
+  $("setpoint").hidden = direct(mode);
+  $("on-panel").hidden = mode !== "on";
+  $("timer-panel").hidden = mode !== "timer";
+  if (mode === "timer" && th) renderTimer(th);
+  $("mode-help").textContent = mode ? t("help_" + mode) : "";
 
   // Rebuilt only when it changes, so its button is not swapped under a finger.
   let text = "";
@@ -2136,8 +2486,8 @@ function renderThermo() {
   }
   if (ctlEdited()) text = t("info_pending");
   else if (hold) text = t("info_hold", t("wait", hold), th.heating);
-  else if (th && th.mode === "off") text = t("info_off");
-  else if (th && th.mode === "manual") text = t("info_manual");
+  else if (th && th.mode === "timer" && th.timer) text = timerInfo(th);
+  else if (th && (th.mode === "off" || th.mode === "manual" || th.mode === "on")) text = "";
   else if (th && th.source === "no_clock") text = t("info_noclock");
   else if (th && th.source === "override" && th.next) {
     text = t("info_override", whenText(th.next, th.clock));
@@ -2160,6 +2510,69 @@ function renderThermo() {
   $("ctl-actions").hidden = !ctlEdited();
 }
 
+// The timer's settings, as they are or as chosen; what the boiler needed lately.
+function renderTimer(th) {
+  const m = ctlTimer != null ? ctlTimer : th.timer_min;
+  const c = ctlCeil != null ? ctlCeil : th.timer_ceil;
+  $("timer-value").textContent = t("min_n", m);
+  $("timer-value").classList.toggle("pending", ctlTimer != null);
+  $("timer-down").disabled = m <= TM_MIN;
+  $("timer-up").disabled = m >= TM_MAX;
+  $("ceil-value").textContent = fmtC(c);
+  $("ceil-value").classList.toggle("pending", ctlCeil != null);
+  $("ceil-down").disabled = c <= CEIL_MIN;
+  $("ceil-up").disabled = c >= CEIL_MAX;
+  const hint = $("timer-hint");
+  const duty = th.duty;
+  const key = lang + (duty ? Math.round(duty.min_per_h) + "/" + Math.round(duty.hours) : "");
+  if (hint.dataset.key === key) return;
+  hint.dataset.key = key;
+  hint.textContent = duty ? t("timer_duty", nf0.format(Math.round(duty.min_per_h)), nf0.format(Math.round(duty.hours))) : "";
+  if (!duty) return;
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "link-btn";
+  b.textContent = t("use_it");
+  b.addEventListener("click", () => {
+    const now = status.thermostat;
+    const v = Math.min(TM_MAX, Math.max(TM_MIN, Math.round(now.duty.min_per_h / TM_STEP) * TM_STEP));
+    ctlTimer = v === now.timer_min ? null : v;
+    showMsg("control-msg");
+    renderThermo();
+  });
+  hint.appendChild(b);
+}
+
+// When the timer's heat stops, or starts again: "14:20'de" / "в 14:20".
+function timerInfo(th) {
+  const d = new Date(thermoDataAt + th.timer.next_s * 1000);
+  const min = d.getHours() * 60 + d.getMinutes();
+  const at = lang === "tr" ? atTime(min) : hhmm(min);
+  if (th.timer.skip) return t("info_timer_skip", fmtC(th.timer_ceil), at);
+  return t(th.timer.on ? "info_timer_on" : "info_timer_off", at);
+}
+
+function stepTimer(by) {
+  const th = status && status.thermostat;
+  if (!th) return;
+  const next = Math.min(TM_MAX, Math.max(TM_MIN, (ctlTimer != null ? ctlTimer : th.timer_min) + by));
+  ctlTimer = next === th.timer_min ? null : next;
+  showMsg("control-msg");
+  renderThermo();
+}
+function stepCeil(by) {
+  const th = status && status.thermostat;
+  if (!th) return;
+  const next = Math.min(CEIL_MAX, Math.max(CEIL_MIN, toStep((ctlCeil != null ? ctlCeil : th.timer_ceil) + by, CEIL_STEP)));
+  ctlCeil = sameNum(next, th.timer_ceil) ? null : next;
+  showMsg("control-msg");
+  renderThermo();
+}
+holdRepeat($("timer-down"), () => stepTimer(-TM_STEP));
+holdRepeat($("timer-up"), () => stepTimer(TM_STEP));
+holdRepeat($("ceil-down"), () => stepCeil(-CEIL_STEP));
+holdRepeat($("ceil-up"), () => stepCeil(CEIL_STEP));
+
 // − / + and the mode only change the page; Uygula sends them.
 function stepTarget(delta) {
   const th = status && status.thermostat;
@@ -2176,12 +2589,16 @@ onSeg("seg-thermo", (mode) => {
   const th = status && status.thermostat;
   ctlMode = th && mode === th.mode ? null : mode;
   ctlTarget = null;  // − / + start again from the new mode's target
+  ctlTimer = null;
+  ctlCeil = null;
   showMsg("control-msg");
   renderThermo();
 });
 $("ctl-discard").addEventListener("click", () => {
   ctlMode = null;
   ctlTarget = null;
+  ctlTimer = null;
+  ctlCeil = null;
   renderThermo();
 });
 $("ctl-apply").addEventListener("click", async () => {
@@ -2200,12 +2617,22 @@ $("ctl-apply").addEventListener("click", async () => {
       ? t("conf_override", whenText(th.next, th.clock), fmtC(ctlTarget))
       : t("conf_target", fmtC(baseTarget(th, mode)), fmtC(ctlTarget)));
   }
+  if (ctlTimer != null) {
+    body.timer_min = ctlTimer;
+    lines.push(t("conf_timer", ctlTimer));
+  }
+  if (ctlCeil != null) {
+    body.timer_ceil = ctlCeil;
+    lines.push(t("conf_ceil", fmtC(ctlCeil)));
+  }
   if (!(await confirmDialog(t("sure"), lines.join(" "), t("yes_apply")))) return;
   $("ctl-apply").disabled = true;
   try {
     await postThermo(body);
     ctlMode = null;
     ctlTarget = null;
+    ctlTimer = null;
+    ctlCeil = null;
     flash("control-msg", t("applied"));
   } catch (err) {
     showMsg("control-msg", "crit", errorText(err));
@@ -2414,6 +2841,8 @@ function renderAdvanced(reset) {
     advSensor = th.sensor;
     advRelay = th.relay;
     advDwell = th.dwell_s;
+    advNames = {};
+    advStale = th.stale_min != null ? th.stale_min : null;
   }
   $("dwell-min").textContent = String(Math.floor(advDwell / 60));
   $("dwell-sec").textContent = String(advDwell % 60);
@@ -2453,17 +2882,81 @@ function renderAdvanced(reset) {
   $("adv-sensor-v").textContent = th.sensor || (sensors[0] ? sensors[0].mac : t("not_found"));
   const sel = $("adv-sensor");
   const key = lang + sensors.map((s) => s.mac).join();
-  if (many && sel.dataset.key !== key) {  // rebuilding would close an open list
-    sel.dataset.key = key;
-    sel.replaceChildren(...sensors.map((s) => new Option(s.mac + (s.t != null ? " · " + fmtC(s.t) : ""), s.mac)));
+  const label = (s) => (s.name ? s.name + " (" + s.mac.slice(-8) + ")" : s.mac) + (s.t != null ? " · " + fmtC(s.t) : "");
+  if (many && sel.dataset.key !== key + sensors.map(label).join()) {  // rebuilding would close an open list
+    sel.dataset.key = key + sensors.map(label).join();
+    sel.replaceChildren(...sensors.map((s) => new Option(label(s), s.mac)));
   }
   if (many) sel.value = advSensor;
+  const ctlNamed = sensors.find((s) => s.mac === th.sensor);
+  if (ctlNamed && ctlNamed.name) $("adv-sensor-v").textContent = ctlNamed.name + " (" + ctlNamed.mac + ")";
+
+  // Names, on a firmware that keeps them (its sensors have a "name").
+  const namesOk = sensors.some((s) => s.name !== undefined);
+  $("names-field").hidden = !namesOk;
+  if (namesOk) renderNames(sensors, th);
 
   setSeg("seg-relay", advRelay);
   $("relay-default").hidden = advRelay === "nc";
   $("relay-help").textContent = t("relay_help", advRelay === "nc");
+
+  $("stale-field").hidden = advStale == null;
+  if (advStale != null) {
+    $("stale-value").textContent = t("min_n", advStale);
+    $("stale-down").disabled = advStale <= ST_MIN;
+    $("stale-up").disabled = advStale >= ST_MAX;
+    $("stale-default").hidden = advStale === ST_DEFAULT;
+    $("stale-help").textContent = t("stale_help", (advRelay || th.relay) === "nc");
+  }
   $("adv-actions").hidden = !bandEdited(th) && advDwell === th.dwell_s &&
-    (!many || advSensor === th.sensor) && advRelay === th.relay;
+    (!many || advSensor === th.sensor) && advRelay === th.relay && !namesEdited() &&
+    (advStale == null || advStale === th.stale_min);
+}
+
+const namesEdited = () => Object.keys(advNames).length > 0;
+
+// An input a sensor; built again only when the sensors change, so typing is not cut.
+function renderNames(sensors, th) {
+  const box = $("names-list");
+  const key = lang + sensors.map((s) => s.mac).join();
+  if (box.dataset.key !== key) {
+    box.dataset.key = key;
+    box.replaceChildren(...sensors.map((s) => {
+      const row = document.createElement("div");
+      row.className = "sensor-row";
+      const input = document.createElement("input");
+      input.className = "input";
+      input.maxLength = 20;
+      input.placeholder = t("name_placeholder");
+      input.setAttribute("aria-label", t("name_aria", s.mac));
+      input.dataset.mac = s.mac;
+      input.value = s.name || "";
+      input.addEventListener("input", () => {
+        const now = (status.sensors.find((x) => x.mac === s.mac) || {}).name || "";
+        const v = input.value.trim();
+        if (v === now) delete advNames[s.mac]; else advNames[s.mac] = v;
+        renderAdvanced(false);
+      });
+      const sub = document.createElement("div");
+      sub.className = "sub";
+      row.append(input, sub);
+      return row;
+    }));
+  }
+  for (const row of box.children) {
+    const input = row.firstChild;
+    const s = sensors.find((x) => x.mac === input.dataset.mac);
+    if (!s) continue;
+    if (!(s.mac in advNames) && document.activeElement !== input) input.value = s.name || "";
+    const parts = [s.mac, s.t != null ? fmtC(s.t) : t("stock_unreadable")];
+    if (s.mac === th.sensor) parts.push(t("ctl_badge"));
+    row.lastChild.textContent = parts.join(" · ");
+  }
+}
+
+function stepStale(by) {
+  advStale = Math.min(ST_MAX, Math.max(ST_MIN, advStale + by));
+  renderAdvanced(false);
 }
 
 const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
@@ -2508,6 +3001,9 @@ holdRepeat($("dwell-sec-down"), () => stepDwell(-1));
 holdRepeat($("dwell-sec-up"), () => stepDwell(1));
 $("dwell-default").addEventListener("click", () => { advDwell = D_DEFAULT; renderAdvanced(false); });
 $("adv-sensor").addEventListener("change", (e) => { advSensor = e.target.value; renderAdvanced(false); });
+holdRepeat($("stale-down"), () => stepStale(-1));
+holdRepeat($("stale-up"), () => stepStale(1));
+$("stale-default").addEventListener("click", () => { advStale = ST_DEFAULT; renderAdvanced(false); });
 onSeg("seg-relay", (v) => { advRelay = v; renderAdvanced(false); });
 $("relay-default").addEventListener("click", () => { advRelay = "nc"; renderAdvanced(false); });
 $("adv-discard").addEventListener("click", () => { renderAdvanced(true); showMsg("adv-msg"); });
@@ -2539,12 +3035,25 @@ $("adv-form").addEventListener("submit", async (e) => {
     body.relay = advRelay;
     changes.push(t("conf_relay", advRelay.toUpperCase()));
   }
+  if (advStale != null && advStale !== th.stale_min) {
+    body.stale_min = advStale;
+    changes.push(t("conf_stale", t("min_n", th.stale_min), t("min_n", advStale)));
+  }
+  const names = Object.entries(advNames);
+  for (const [mac, name] of names) changes.push(t("conf_name", mac, name));
   if (!changes.length) return;
   if (!(await confirmDialog(t("sure"), changes.join(" ") + t("conf_now"), t("yes_apply")))) return;
   $("adv-save").disabled = true;
   try {
-    await postThermo(body);
+    if (Object.keys(body).length) await postThermo(body);
+    for (const [mac, name] of names) {
+      const r = await fetch("/api/sensor", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ mac, name }) });
+      if (!r.ok) throw new Error(t("err_name"));
+      const own = status.sensors.find((x) => x.mac === mac);
+      if (own) own.name = name;  // shown at once, before the next status
+    }
     renderAdvanced(true);
+    renderRooms();
     flash("adv-msg", t("applied"));
   } catch (err) {
     showMsg("adv-msg", "crit", errorText(err));
@@ -2559,7 +3068,10 @@ let histCloudFail = false;
 
 // The device keeps the last 24 hours since its last start, one sample a minute.
 async function fetchDeviceHistory() {
-  const r = await fetch("/api/history?sensor=" + sensor + "&n=1440", { cache: "no-store" });
+  // By MAC on a firmware that names sensors: a place in the list may change hands.
+  const which = status && status.sensors[sensor];
+  const q = which && which.name !== undefined ? "mac=" + encodeURIComponent(which.mac) : "sensor=" + sensor;
+  const r = await fetch("/api/history?" + q + "&n=1440", { cache: "no-store" });
   if (!r.ok) throw new Error(r.status);
   const d = await r.json();
   const n = d.t.length;
@@ -4000,6 +4512,262 @@ if (REMOTE) {
     showLogin("form");
   });
 }
+
+/* ---------- notifications ---------- */
+
+let pushInfo = null;   // GET /api/push: settings, the device's key, the phones
+let pushEdit = null;   // the settings being edited
+let pushSub = null;    // this browser's subscription
+let pushId = null;     // its id on the device: the endpoint's SHA-256, 8 hex digits
+const EVENTS = ["sensor", "battery", "long_run", "room", "online", "ap", "update"];
+// Push needs a secure page with a service worker: the remote page from the Home
+// Screen on an iPhone; the device's own page on http never can.
+const pushCapable = () => window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window &&
+  "Notification" in window;
+const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent);
+const standalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+function b64urlBytes(text) {
+  const bin = atob(text.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((text.length + 3) % 4));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+async function endpointId(endpoint) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint)));
+  return [...h.slice(0, 4)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+function phoneLabel() {
+  const ua = navigator.userAgent;
+  const kind = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows" : /Mac/.test(ua) ? "Mac" : t("browser");
+  return (REMOTE && remote.creds ? remote.creds.user + " · " : "") + kind;
+}
+const phoneSubscribed = () => !!(pushId && pushInfo && pushInfo.phones.some((x) => x.id === pushId));
+
+async function loadPush() {
+  try {
+    const r = await fetch("/api/push", { cache: "no-store" });
+    if (!r.ok) throw new Error(t("err_load"));
+    pushInfo = await r.json();
+  } catch (e) {
+    showMsg("notify-msg", "crit", errorText(e));
+    return;
+  }
+  pushSub = null;
+  pushId = null;
+  if (pushCapable()) {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      pushSub = reg ? await reg.pushManager.getSubscription() : null;
+      pushId = pushSub ? await endpointId(pushSub.endpoint) : null;
+    } catch (e) { /* not subscribed */ }
+  }
+  if (!pushEdit) fillPushForm();
+  renderPush();
+}
+
+function fillPushForm() {
+  pushEdit = { enabled: pushInfo.enabled, events: Object.assign({}, pushInfo.events),
+               room_low: pushInfo.room_low, room_high: pushInfo.room_high };
+}
+function pushEdited() {
+  return !!(pushInfo && pushEdit) && (pushEdit.enabled !== pushInfo.enabled || !sameNum(pushEdit.room_low, pushInfo.room_low) ||
+    !sameNum(pushEdit.room_high, pushInfo.room_high) || EVENTS.some((e) => pushEdit.events[e] !== pushInfo.events[e]));
+}
+
+function limitStepper(id, label) {
+  const row = document.createElement("div");
+  row.className = "band-row";
+  row.innerHTML = '<span class="label"></span><div class="stepper"><button class="round-btn small" type="button">' +
+    '<svg class="icon"><use href="#i-minus"/></svg></button><span class="stepper-value"></span>' +
+    '<button class="round-btn small" type="button"><svg class="icon"><use href="#i-plus"/></svg></button></div>';
+  row.querySelector(".label").textContent = label;
+  const [down, up] = row.querySelectorAll("button");
+  down.id = id + "-down";
+  up.id = id + "-up";
+  row.querySelector(".stepper-value").id = id + "-value";
+  down.setAttribute("aria-label", label + " −0,5 °C");
+  up.setAttribute("aria-label", label + " +0,5 °C");
+  const key = id === "low" ? "room_low" : "room_high";
+  const step = (by) => {
+    const next = toStep(pushEdit[key] + by, 0.5);
+    const lo = key === "room_low" ? next : pushEdit.room_low;
+    const hi = key === "room_high" ? next : pushEdit.room_high;
+    if (lo < 5 || hi > 35 || lo > 30 || hi - lo < 1 - 1e-6) return;
+    pushEdit[key] = next;
+    renderPush();
+  };
+  holdRepeat(down, () => step(-0.5));
+  holdRepeat(up, () => step(0.5));
+  return row;
+}
+
+function eventRow(ev) {
+  const wrap = document.createElement("div");
+  const row = document.createElement("div");
+  row.className = "event-row";
+  const label = document.createElement("label");
+  label.className = "label";
+  label.htmlFor = "ev-" + ev;
+  label.textContent = t("ev_" + ev);
+  const sw = document.createElement("input");
+  sw.type = "checkbox";
+  sw.className = "switch";
+  sw.id = "ev-" + ev;
+  sw.addEventListener("change", () => { pushEdit.events[ev] = sw.checked; renderPush(); });
+  row.append(label, sw);
+  wrap.append(row);
+  if (ev === "room") {
+    const limits = document.createElement("div");
+    limits.id = "room-limits";
+    limits.className = "room-limits";
+    limits.append(limitStepper("low", t("room_low")), limitStepper("high", t("room_high")));
+    wrap.append(limits);
+  }
+  return wrap;
+}
+
+function renderPush() {
+  if (!pushInfo || !pushEdit) return;
+  const on = phoneSubscribed();
+  setBadge($("phone-badge"), on ? "ok" : "off", t(on ? "phone_on" : "phone_off"));
+  const capable = pushCapable();
+  const denied = capable && Notification.permission === "denied";
+  $("phone-text").textContent = !capable
+    ? (isIos() && !standalone() ? t("push_ios_homescreen") : window.isSecureContext ? t("push_unsupported") : t("push_local_only"))
+    : denied && !on ? t("push_denied") : t(on ? "push_text_on" : "push_text_off");
+  $("phone-toggle").hidden = !capable || (denied && !on);
+  $("phone-toggle").textContent = t(on ? "push_off_btn" : "push_on_btn");
+  $("phone-toggle").className = "btn " + (on ? "btn-secondary" : "btn-primary");
+  $("phone-test").hidden = !on;
+  $("phone-actions").hidden = $("phone-toggle").hidden && $("phone-test").hidden;
+
+  $("notify-on").checked = pushEdit.enabled;
+  const box = $("events");
+  if (box.dataset.key !== lang) {
+    box.dataset.key = lang;
+    box.replaceChildren(...EVENTS.map(eventRow));
+  }
+  for (const ev of EVENTS) {
+    $("ev-" + ev).checked = !!pushEdit.events[ev];
+    $("ev-" + ev).disabled = !pushEdit.enabled;
+  }
+  $("room-limits").hidden = !pushEdit.events.room || !pushEdit.enabled;
+  $("low-value").textContent = fmtC(pushEdit.room_low);
+  $("high-value").textContent = fmtC(pushEdit.room_high);
+  $("low-down").disabled = pushEdit.room_low <= 5;
+  $("high-up").disabled = pushEdit.room_high >= 35;
+  $("notify-actions").hidden = !pushEdited();
+
+  const list = $("phones");
+  const key = lang + JSON.stringify(pushInfo.phones) + pushId;
+  if (list.dataset.key === key) return;
+  list.dataset.key = key;
+  if (!pushInfo.phones.length) {
+    const p = document.createElement("p");
+    p.className = "help";
+    p.textContent = t("no_phones");
+    list.replaceChildren(p);
+    return;
+  }
+  list.replaceChildren(...pushInfo.phones.map((ph) => {
+    const row = document.createElement("div");
+    row.className = "phone-row";
+    const text = document.createElement("span");
+    text.textContent = ph.label || ph.host;
+    if (ph.id === pushId) text.textContent += " · " + t("this_phone_tag");
+    const sub = document.createElement("span");
+    sub.className = "sub";
+    sub.textContent = ph.host + (ph.added ? " · " + t("phone_added", fmtDay(ph.added * 1000)) : "");
+    text.append(sub);
+    row.append(text, iconButton("trash", t("remove"), async () => {
+      if (!(await confirmDialog(t("sure"), t("conf_phone_remove", ph.label || ph.host), t("yes_remove")))) return;
+      try {
+        await postJson("/api/push/unsub", { id: ph.id });
+        if (ph.id === pushId && pushSub) await pushSub.unsubscribe().catch(() => {});
+        flash("notify-msg", t("applied"));
+      } catch (e) {
+        showMsg("notify-msg", "crit", errorText(e));
+      }
+      loadPush();
+    }));
+    return row;
+  }));
+}
+
+// The phone's own consent (the system's prompt) stands for "Emin misiniz?" here.
+$("phone-toggle").addEventListener("click", async () => {
+  showMsg("notify-msg");
+  if (phoneSubscribed()) {
+    if (!(await confirmDialog(t("sure"), t("conf_push_off"), t("yes_off")))) return;
+    try {
+      await postJson("/api/push/unsub", { id: pushId });
+      if (pushSub) await pushSub.unsubscribe().catch(() => {});
+      flash("notify-msg", t("applied"));
+    } catch (e) {
+      showMsg("notify-msg", "crit", errorText(e));
+    }
+    loadPush();
+    return;
+  }
+  $("phone-toggle").disabled = true;
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      showMsg("notify-msg", "warn", t("push_denied"));
+    } else {
+      await navigator.serviceWorker.register("sw.js");
+      // A worker that cannot install never gets ready: say so rather than wait for ever.
+      const reg = await Promise.race([navigator.serviceWorker.ready,
+        new Promise((_, fail) => setTimeout(() => fail(new Error("service worker")), 10e3))]);
+      const key = b64urlBytes(pushInfo.key);
+      let sub = await reg.pushManager.getSubscription();
+      const sameKey = (k) => k && k.byteLength === key.length && new Uint8Array(k).every((x, i) => x === key[i]);
+      if (sub && !sameKey(sub.options && sub.options.applicationServerKey)) {
+        await sub.unsubscribe();  // made with another key (the device was reset): no good any more
+        sub = null;
+      }
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      const j = sub.toJSON();
+      const r = await fetch("/api/push/sub", { method: "POST", headers: JSON_HEADERS,
+        body: JSON.stringify({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, label: phoneLabel() }) });
+      if (!r.ok) throw new Error(t(r.status === 400 ? "err_phones" : "err_save"));
+      flash("notify-msg", t("applied"));
+    }
+  } catch (e) {
+    showMsg("notify-msg", "crit", t("push_failed") + errorText(e));
+  }
+  $("phone-toggle").disabled = false;
+  loadPush();
+});
+
+$("phone-test").addEventListener("click", async () => {
+  try {
+    await postJson("/api/push/test", { id: pushId });
+    flash("notify-msg", t("push_test_sent"));
+  } catch (e) {
+    showMsg("notify-msg", "crit", errorText(e));
+  }
+});
+
+$("notify-on").addEventListener("change", (e) => { pushEdit.enabled = e.target.checked; renderPush(); });
+$("notify-discard").addEventListener("click", () => { fillPushForm(); renderPush(); showMsg("notify-msg"); });
+$("notify-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!pushEdited()) return;
+  if (!(await confirmDialog(t("sure"), t("conf_notify"), t("yes_apply")))) return;
+  $("notify-save").disabled = true;
+  try {
+    const r = await fetch("/api/push", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(pushEdit) });
+    if (!r.ok) throw new Error(t(r.status === 400 ? "err_value" : "err_save2"));
+    pushInfo = await r.json();
+    fillPushForm();
+    renderPush();
+    flash("notify-msg", t("applied"));
+  } catch (err) {
+    showMsg("notify-msg", "crit", errorText(err));
+  }
+  $("notify-save").disabled = false;
+});
 
 applyStatic();
 renderLang();
