@@ -334,6 +334,13 @@ th:first-child, td:first-child { text-align: left; }
 .room-dots button[aria-current="true"]::before { background: var(--ink-2); }
 /* Gelişmiş: the sensors' names */
 .sensor-row + .sensor-row { margin-top: 12px; }
+/* Sensör 1-4: the place, the sensor in it, its name */
+.place-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+.place-row + .place-row { margin-top: 14px; }
+.place-row .place-n { font-weight: 600; white-space: nowrap; min-width: 5.4em; }  /* the four rows line up */
+.place-row input, .place-row .sub { grid-column: 2; }
+.place-row .sub { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.cloud-ch-title { font-weight: 600; margin-bottom: 10px; }
 .sensor-row .sub { margin-top: 4px; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 /* Bildirim */
 .event-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--border); }
@@ -615,6 +622,12 @@ th:first-child, td:first-child { text-align: left; }
         <dl class="kv">
           <div id="adv-sensor-row"><dt data-t="ctl_sensor">Kontrol sensörü</dt><dd id="adv-sensor-v">—</dd></div>
         </dl>
+        <div id="slots-field" class="field" hidden>
+          <div class="label" data-t="slots_title">Sensörler</div>
+          <div id="slots-list"></div>
+          <p class="help" data-t="slots_help">Sensör 1–4, ThingSpeak'in 2. kanalındaki temp1/hum1 … temp4/hum4 alanlarıdır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.</p>
+          <p id="slots-others" class="help"></p>
+        </div>
         <div id="names-field" class="field" hidden>
           <div class="label" data-t="sensor_names">Sensör isimleri</div>
           <div id="names-list"></div>
@@ -801,10 +814,11 @@ th:first-child, td:first-child { text-align: left; }
         <span id="cloud-badge" class="badge off">—</span>
       </div>
       <div class="field switch-row">
-        <div><div class="label" data-t="cloud_send">Verileri ThingSpeak'e gönder</div><p class="help" data-t="cloud_send_help">Dakikada bir sıcaklık, nem ve kombi durumu gönderilir.</p></div>
+        <div><div class="label" data-t="cloud_send">Verileri ThingSpeak'e gönder</div><p class="help" id="cloud-send-help" data-t="cloud_send_help">Dakikada bir sıcaklık, nem ve kombi durumu gönderilir.</p></div>
         <input id="cloud-on" class="switch" type="checkbox" role="switch" aria-label="Verileri ThingSpeak'e gönder" data-t-aria="cloud_send">
       </div>
       <div class="sep"></div>
+      <div id="cloud-ch1-title" class="label cloud-ch-title" data-t="cloud_ch1" hidden>Kanal 1 · kombi ve hedef</div>
       <div class="field">
         <label for="cloud-channel" data-t="cloud_channel">Kanal numarası (Channel ID)</label>
         <input id="cloud-channel" class="input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false">
@@ -819,14 +833,34 @@ th:first-child, td:first-child { text-align: left; }
         <input id="cloud-rkey" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
         <p class="help" data-t="cloud_rkey_help">Geçmiş grafiği bu anahtarla okunur.</p>
       </div>
+      <div id="cloud-ch2" hidden>
+        <div class="sep"></div>
+        <div class="label cloud-ch-title" data-t="cloud_ch2">Kanal 2 · sensörler</div>
+        <div class="field">
+          <label for="cloud-channel2" data-t="cloud_channel">Kanal numarası (Channel ID)</label>
+          <input id="cloud-channel2" class="input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="cloud-wkey2">Write API Key</label>
+          <input id="cloud-wkey2" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="cloud-rkey2">Read API Key</label>
+          <input id="cloud-rkey2" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+          <p class="help" data-t="cloud_ch2_help">Sensör 1 field1–2'ye, Sensör 2 field3–4'e, Sensör 3 field5–6'ya, Sensör 4 field7–8'e yazılır (temp1/hum1 … temp4/hum4).</p>
+        </div>
+      </div>
       <div class="sep"></div>
       <dl class="kv">
-        <div><dt data-t="cloud_last">Son gönderim</dt><dd id="cloud-last-v">—</dd></div>
+        <div><dt id="cloud-last-label" data-t="cloud_last">Son gönderim</dt><dd id="cloud-last-v">—</dd></div>
+        <div id="cloud-last2-row" hidden><dt data-t="cloud_last2">Son gönderim, kanal 2</dt><dd id="cloud-last2-v">—</dd></div>
+        <div id="cloud-pending-row" hidden><dt data-t="cloud_pending">Bekleyen dakikalar</dt><dd id="cloud-pending-v">—</dd></div>
         <div><dt data-t="cloud_sent">Gönderilen (açılıştan beri)</dt><dd id="cloud-sent-v">—</dd></div>
       </dl>
       <div id="cloud-error"></div>
       <div id="cloud-check"></div>
       <p class="help"><a id="cloud-link" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open">Kanalı ThingSpeak'te aç</a></p>
+      <p class="help" id="cloud-link2-row" hidden><a id="cloud-link2" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open2">Kanal 2'yi ThingSpeak'te aç</a></p>
       <div id="cloud-actions" class="actions" hidden>
         <button id="cloud-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
         <button id="cloud-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
@@ -1163,6 +1197,23 @@ const L = {
     cloud_last: "Son gönderim",
     cloud_sent: "Gönderilen (açılıştan beri)",
     cloud_open: "Kanalı ThingSpeak'te aç",
+    cloud_open1: "Kanal 1'i ThingSpeak'te aç",
+    cloud_open2: "Kanal 2'yi ThingSpeak'te aç",
+    cloud_send_help2: "Dakikada bir: kombi ve hedef 1. kanala, Sensör 1–4'ün sıcaklık ve nemi 2. kanala gider. İnternet yokken dakikalar cihazda bekler (24 saate kadar), bağlantı gelince kendi zamanlarıyla gönderilir.",
+    cloud_ch1: "Kanal 1 · kombi ve hedef",
+    cloud_ch2: "Kanal 2 · sensörler",
+    cloud_ch2_help: "Sensör 1 field1–2'ye, Sensör 2 field3–4'e, Sensör 3 field5–6'ya, Sensör 4 field7–8'e yazılır (temp1/hum1 … temp4/hum4).",
+    cloud_last1: "Son gönderim, kanal 1",
+    cloud_last2: "Son gönderim, kanal 2",
+    cloud_pending: "Bekleyen dakikalar",
+    cloud_pending_v: (n) => n + NBSP + "dk; bağlantı gelince gönderilecek",
+    cloud_in: (n) => "Kanal " + n + ": ",
+    cloud_err_no_clock: "Saat henüz bilinmiyor; dakikalar saat öğrenilince gönderilecek.",
+    cloud_err_no_mem: "Cihazda bellek yetmedi; bir dakika sonra yeniden denenecek.",
+    cloud_field_s: (n) => "Field " + n + " (Sensör " + Math.ceil(n / 2) + (n % 2 ? " sıcaklık" : " nem") + ")",
+    ch_cloud_cfg2: "Kanal 2'nin bilgileri değişecek.",
+    err_ch_pair: "Bir kanal için kanal numarası ile Write API Key birlikte girilir (ya da ikisi de boş bırakılır).",
+    hist_cloud_noslot: "ThingSpeak'in 2. kanalında bu sensörün alanları açık değil; cihazdaki veriler gösteriliyor.",
     cloud_ago: (ago) => ago + " önce",
     cloud_badge_ok: "Gönderiyor", cloud_badge_err: "Hata", cloud_badge_off: "Kapalı", cloud_badge_wait: "Bekliyor",
     cloud_err_no_wifi: "İnternet bağlantısı yok; veriler gönderilemiyor.",
@@ -1388,6 +1439,15 @@ const L = {
     conf_timer: (m) => "Zamanlayıcı her saatin ilk " + m + " dakikasında ısıtacak.",
     conf_ceil: (c) => "Oda " + c + " ya da üstündeyse o saatin ısıtması atlanacak.",
     sensor_names: "Sensör isimleri",
+    slots_title: "Sensörler",
+    slots_help: "Sensör 1–4, ThingSpeak'in 2. kanalındaki temp1/hum1 … temp4/hum4 alanlarıdır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.",
+    slot_n: (n) => "Sensör " + n,
+    slot_empty: "— boş —",
+    slot_aria: (n) => "Sensör " + n + " yerindeki sensör",
+    slot_unheard: "şu an duyulmuyor",
+    slots_others: (list) => "Yeri olmayan sensörler: " + list + ".",
+    conf_slot: (n, who) => who ? "Sensör " + n + " yerine " + who + " gelecek." : "Sensör " + n + " yeri boşaltılacak.",
+    err_slot: "Sensör yeri kaydedilemedi.",
     name_placeholder: "İsim (ör. Salon)",
     name_aria: (mac) => mac + " sensörünün adı",
     stock_unreadable: "orijinal yazılım, okunamıyor",
@@ -1553,6 +1613,23 @@ const L = {
     cloud_last: "Последняя отправка",
     cloud_sent: "Отправлено (с запуска)",
     cloud_open: "Открыть канал в ThingSpeak",
+    cloud_open1: "Открыть канал 1 в ThingSpeak",
+    cloud_open2: "Открыть канал 2 в ThingSpeak",
+    cloud_send_help2: "Раз в минуту: котёл и цель — в канал 1, температура и влажность датчиков 1–4 — в канал 2. Без интернета минуты ждут на устройстве (до 24 часов) и отправляются со своим временем, когда связь появится.",
+    cloud_ch1: "Канал 1 · котёл и цель",
+    cloud_ch2: "Канал 2 · датчики",
+    cloud_ch2_help: "Датчик 1 пишется в field1–2, датчик 2 — в field3–4, датчик 3 — в field5–6, датчик 4 — в field7–8 (temp1/hum1 … temp4/hum4).",
+    cloud_last1: "Последняя отправка, канал 1",
+    cloud_last2: "Последняя отправка, канал 2",
+    cloud_pending: "Ожидают отправки",
+    cloud_pending_v: (n) => n + NBSP + "мин; отправятся, когда появится связь",
+    cloud_in: (n) => "Канал " + n + ": ",
+    cloud_err_no_clock: "Время ещё неизвестно; минуты отправятся, когда устройство узнает время.",
+    cloud_err_no_mem: "Устройству не хватило памяти; повтор через минуту.",
+    cloud_field_s: (n) => "Field " + n + " (датчик " + Math.ceil(n / 2) + (n % 2 ? ", температура" : ", влажность") + ")",
+    ch_cloud_cfg2: "Данные канала 2 изменятся.",
+    err_ch_pair: "Номер канала и Write API Key вводятся вместе (или оба остаются пустыми).",
+    hist_cloud_noslot: "В канале 2 ThingSpeak не включены поля этого датчика; показаны данные с устройства.",
     cloud_ago: (ago) => ago + " назад",
     cloud_badge_ok: "Отправляет", cloud_badge_err: "Ошибка", cloud_badge_off: "Выкл.", cloud_badge_wait: "Ожидание",
     cloud_err_no_wifi: "Нет подключения к интернету; данные не отправляются.",
@@ -1778,6 +1855,15 @@ const L = {
     conf_timer: (m) => "Таймер будет греть первые " + m + NBSP + "мин каждого часа.",
     conf_ceil: (c) => "Если в комнате " + c + " или теплее, нагрев в этот час будет пропущен.",
     sensor_names: "Названия датчиков",
+    slots_title: "Датчики",
+    slots_help: "Датчики 1–4 — это поля temp1/hum1 … temp4/hum4 канала 2 ThingSpeak. Перенос датчика на другое место разделит его историю в ThingSpeak.",
+    slot_n: (n) => "Датчик " + n,
+    slot_empty: "— пусто —",
+    slot_aria: (n) => "Датчик на месте " + n,
+    slot_unheard: "сейчас не слышен",
+    slots_others: (list) => "Датчики без места: " + list + ".",
+    conf_slot: (n, who) => who ? "На место датчика " + n + " встанет " + who + "." : "Место датчика " + n + " освободится.",
+    err_slot: "Не удалось сохранить место датчика.",
     name_placeholder: "Название (напр. Гостиная)",
     name_aria: (mac) => "Название датчика " + mac,
     stock_unreadable: "заводская прошивка, не читается",
@@ -1877,7 +1963,7 @@ let rebootLimit = 90e3; // how long a restart may take before the page gives up 
 let otaBusy = false;    // a firmware upload holds the device's web server: no status polls meanwhile
 let statusShown = 0;    // the newest poll whose answer is shown
 let hist = null;        // { times: [ms], t, h, sp: [°C|null], on: [0|1] }
-let sensor = 0;         // the sensor shown in Geçmiş
+let histMac = "";       // the sensor shown in Geçmiş, by MAC ("": the one in control)
 let measure = "temp";
 let rangeH = 6;
 let hoverIdx = null;    // index into hist arrays
@@ -1911,6 +1997,7 @@ let langEdit = null;    // language chosen on Genel but not applied yet
 let ctlTimer = null;    // Zamanlayıcı minutes chosen on Kontrol but not applied yet
 let ctlCeil = null;     // ... and its ceiling
 let advNames = {};      // sensor names being edited, by MAC
+let advPlaces = null;    // Sensör 1-4 being edited (MACs, "" empty); null: as the device has them
 let advStale = null;    // sensor timeout being edited, minutes
 
 try {
@@ -2266,17 +2353,36 @@ function syncClock() {
     .then(fetchStatus, () => { timeSent = false; });
 }
 
+// The sensors whose history Geçmiş can show: Sensör 1-4 (in the cloud, from
+// anywhere), and at home the others the device keeps 24 hours of. On a
+// firmware without places, at home only (the cloud has the control sensor).
+function pickerSensors() {
+  if (!status) return [];
+  const out = [];
+  if (status.slots) {
+    for (const x of status.slots) if (x) out.push({ mac: x.mac, label: x.name || t("sensor_n", x.mac.slice(-8)) });
+  }
+  if (!REMOTE) {
+    for (const s of status.sensors) {
+      if (!out.some((o) => o.mac === s.mac) && s.t != null) out.push({ mac: s.mac, label: sensorName(s) });
+    }
+  }
+  return out;
+}
+const shownMac = () => histMac || (status && status.thermostat && status.thermostat.sensor) ||
+  (status && status.sensors[0] ? status.sensors[0].mac : "");
+
 function renderSensorPicker() {
   const sel = $("sensor");
-  const list = status ? status.sensors : [];
-  sel.hidden = list.length < 2 || REMOTE;  // remotely only the control sensor's cloud history exists
+  const list = pickerSensors();
+  sel.hidden = list.length < 2;
   if (sel.hidden) return;
-  const key = lang + list.map((s) => s.mac + (s.name || "")).join();
+  const key = lang + list.map((o) => o.mac + o.label).join();
   if (sel.dataset.key !== key) {
     sel.dataset.key = key;
-    sel.replaceChildren(...list.map((s, i) => new Option(sensorName(s), i)));
+    sel.replaceChildren(...list.map((o) => new Option(o.label, o.mac)));
   }
-  sel.value = sensor;
+  sel.value = shownMac();
 }
 
 function renderStatus() {
@@ -2333,6 +2439,11 @@ function renderStatus() {
 function roomSensors() {
   if (!status) return [];
   const ctl = controlSensor();
+  if (status.slots) {  // the house's sensors are Sensör 1-4, in their order
+    const placed = status.slots.map((x) => x && status.sensors.find((s) => s.mac === x.mac))
+      .filter((x) => x && x !== ctl && x.t != null);
+    return ctl ? [ctl].concat(placed) : placed;
+  }
   const rest = status.sensors.filter((x) => x !== ctl && x.t != null);
   rest.sort((a, b) => (a.name || "\uffff").localeCompare(b.name || "\uffff") || a.mac.localeCompare(b.mac));
   return ctl ? [ctl].concat(rest) : rest;
@@ -2842,6 +2953,7 @@ function renderAdvanced(reset) {
     advRelay = th.relay;
     advDwell = th.dwell_s;
     advNames = {};
+    advPlaces = null;
     advStale = th.stale_min != null ? th.stale_min : null;
   }
   $("dwell-min").textContent = String(Math.floor(advDwell / 60));
@@ -2891,9 +3003,13 @@ function renderAdvanced(reset) {
   const ctlNamed = sensors.find((s) => s.mac === th.sensor);
   if (ctlNamed && ctlNamed.name) $("adv-sensor-v").textContent = ctlNamed.name + " (" + ctlNamed.mac + ")";
 
-  // Names, on a firmware that keeps them (its sensors have a "name").
-  const namesOk = sensors.some((s) => s.name !== undefined);
+  // Sensör 1-4 with their names, on a firmware with places ("slots"); else the
+  // names alone, on one that keeps them (its sensors have a "name").
+  const slotsOk = Array.isArray(status.slots);
+  const namesOk = !slotsOk && sensors.some((s) => s.name !== undefined);
+  $("slots-field").hidden = !slotsOk;
   $("names-field").hidden = !namesOk;
+  if (slotsOk) renderPlaces(th);
   if (namesOk) renderNames(sensors, th);
 
   setSeg("seg-relay", advRelay);
@@ -2909,11 +3025,81 @@ function renderAdvanced(reset) {
     $("stale-help").textContent = t("stale_help", (advRelay || th.relay) === "nc");
   }
   $("adv-actions").hidden = !bandEdited(th) && advDwell === th.dwell_s &&
-    (!many || advSensor === th.sensor) && advRelay === th.relay && !namesEdited() &&
+    (!many || advSensor === th.sensor) && advRelay === th.relay && !namesEdited() && !placesEdited() &&
     (advStale == null || advStale === th.stale_min);
 }
 
 const namesEdited = () => Object.keys(advNames).length > 0;
+
+const placeMacs = () => (status && status.slots ? status.slots.map((x) => (x ? x.mac : "")) : []);
+const placesEdited = () => !!advPlaces && advPlaces.some((m, i) => m !== placeMacs()[i]);
+// A sensor's name as the device has it: from the list, or from its place if not heard now.
+function knownName(mac) {
+  const s = status.sensors.find((x) => x.mac === mac);
+  if (s && s.name) return s.name;
+  const p = (status.slots || []).find((x) => x && x.mac === mac);
+  return p ? p.name : "";
+}
+
+// Four rows, built once per language: the place, a choice of sensor, its name.
+function renderPlaces(th) {
+  const box = $("slots-list");
+  if (box.dataset.lang !== lang) {
+    box.dataset.lang = lang;
+    box.replaceChildren(...[1, 2, 3, 4].map((n) => {
+      const row = document.createElement("div");
+      row.className = "place-row";
+      row.innerHTML = '<span class="place-n"></span><select class="input"></select><input class="input" maxlength="20"><div class="sub"></div>';
+      row.querySelector(".place-n").textContent = t("slot_n", n);
+      const sel = row.querySelector("select");
+      sel.id = "slot-" + n;
+      sel.setAttribute("aria-label", t("slot_aria", n));
+      sel.addEventListener("change", () => {
+        const next = (advPlaces || placeMacs()).slice();
+        for (let i = 0; i < 4; i++) if (sel.value && next[i] === sel.value) next[i] = "";  // one place a sensor
+        next[n - 1] = sel.value;
+        advPlaces = next;
+        renderAdvanced(false);
+      });
+      const input = row.querySelector("input");
+      input.id = "slot-name-" + n;
+      input.placeholder = t("name_placeholder");
+      input.addEventListener("input", () => {
+        const mac = (advPlaces || placeMacs())[n - 1];
+        if (!mac) return;
+        const v = input.value.trim();
+        if (v === knownName(mac)) delete advNames[mac]; else advNames[mac] = v;
+        renderAdvanced(false);
+      });
+      return row;
+    }));
+  }
+  const want = advPlaces || placeMacs();
+  // Every sensor heard, and those in a place though not heard now.
+  const macs = [...new Set(status.sensors.map((s) => s.mac).concat(placeMacs(), want).filter(Boolean))];
+  const optLabel = (m) => (knownName(m) ? knownName(m) + " · " : "") + m;
+  const key = lang + macs.map(optLabel).join("|");  // no readings in it: a rebuild would close an open list
+  [...box.children].forEach((row, i) => {
+    const mac = want[i];
+    const sel = row.querySelector("select");
+    if (sel.dataset.key !== key) {
+      sel.dataset.key = key;
+      sel.replaceChildren(new Option(t("slot_empty"), ""), ...macs.map((m) => new Option(optLabel(m), m)));
+    }
+    sel.value = mac;
+    const input = row.querySelector("input");
+    input.disabled = !mac;
+    input.setAttribute("aria-label", mac ? t("name_aria", mac) : t("slot_aria", i + 1));
+    if (document.activeElement !== input) input.value = mac ? (mac in advNames ? advNames[mac] : knownName(mac)) : "";
+    const s = status.sensors.find((x) => x.mac === mac);
+    const parts = mac ? [mac, s ? (s.t != null ? fmtC(s.t) : t("stock_unreadable")) : t("slot_unheard")] : [];
+    if (mac && mac === th.sensor) parts.push(t("ctl_badge"));
+    row.querySelector(".sub").textContent = parts.join(" · ");
+  });
+  const others = status.sensors.filter((s) => !want.includes(s.mac));
+  $("slots-others").textContent = others.length ? t("slots_others",
+    others.map((s) => s.mac + (s.t == null ? " (" + t("stock_unreadable") + ")" : "")).join(", ")) : "";
+}
 
 // An input a sensor; built again only when the sensors change, so typing is not cut.
 function renderNames(sensors, th) {
@@ -3039,6 +3225,16 @@ $("adv-form").addEventListener("submit", async (e) => {
     body.stale_min = advStale;
     changes.push(t("conf_stale", t("min_n", th.stale_min), t("min_n", advStale)));
   }
+  const placePosts = [];
+  if (placesEdited()) {
+    const cur = placeMacs();
+    advPlaces.forEach((mac, i) => {
+      if (mac === cur[i]) return;
+      changes.push(t("conf_slot", i + 1, mac ? (advNames[mac] || knownName(mac) || mac) : ""));
+      if (mac) placePosts.push({ mac, slot: i + 1 });
+    });
+    for (const mac of cur) if (mac && !advPlaces.includes(mac)) placePosts.push({ mac, slot: 0 });
+  }
   const names = Object.entries(advNames);
   for (const [mac, name] of names) changes.push(t("conf_name", mac, name));
   if (!changes.length) return;
@@ -3046,11 +3242,18 @@ $("adv-form").addEventListener("submit", async (e) => {
   $("adv-save").disabled = true;
   try {
     if (Object.keys(body).length) await postThermo(body);
+    for (const post of placePosts) {
+      const r = await fetch("/api/sensor", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(post) });
+      if (!r.ok) throw new Error(t("err_slot"));
+    }
+    if (placePosts.length) status.slots = advPlaces.map((m) => (m ? { mac: m, name: knownName(m) } : null));
     for (const [mac, name] of names) {
       const r = await fetch("/api/sensor", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ mac, name }) });
       if (!r.ok) throw new Error(t("err_name"));
       const own = status.sensors.find((x) => x.mac === mac);
       if (own) own.name = name;  // shown at once, before the next status
+      const place = (status.slots || []).find((x) => x && x.mac === mac);
+      if (place) place.name = name;
     }
     renderAdvanced(true);
     renderRooms();
@@ -3069,8 +3272,10 @@ let histCloudFail = false;
 // The device keeps the last 24 hours since its last start, one sample a minute.
 async function fetchDeviceHistory() {
   // By MAC on a firmware that names sensors: a place in the list may change hands.
-  const which = status && status.sensors[sensor];
-  const q = which && which.name !== undefined ? "mac=" + encodeURIComponent(which.mac) : "sensor=" + sensor;
+  const list = status ? status.sensors : [];
+  const i = Math.max(0, list.findIndex((s) => s.mac === shownMac()));
+  const which = list[i];
+  const q = which && which.name !== undefined ? "mac=" + encodeURIComponent(which.mac) : "sensor=" + i;
   const r = await fetch("/api/history?" + q + "&n=1440", { cache: "no-store" });
   if (!r.ok) throw new Error(r.status);
   const d = await r.json();
@@ -3133,24 +3338,85 @@ async function fetchCloudHistory(c) {
   };
 }
 
-const cloudOn = () => !!(status && status.cloud && status.cloud.enabled && status.cloud.channel);
-// The cloud has the control sensor's samples only.
-function isControlSensor(i) {
-  const list = status ? status.sensors : [];
-  const mac = status && status.thermostat && status.thermostat.sensor;
-  return !mac || !list[i] || list[i].mac === mac;
+// Two channels: the boiler and the target in channel 1, Sensör n in fields
+// 2n-1 (°C) and 2n (%) of channel 2, at the same minutes (the device stamps
+// both with the minute's own time). Stray entries (the API page's test link)
+// lack channel 1's field3 and are left out, as on one channel.
+async function fetchCloudHistory2(c, slot) {
+  const base = (ch, key) => "https://api.thingspeak.com/channels/" + ch + "/feeds.json?round=2&timezone=UTC" +
+    (key ? "&api_key=" + key : "");
+  const utc = (ms) => encodeURIComponent(new Date(ms).toISOString().slice(0, 19).replace("T", " "));
+  const minutes = rangeH <= 24 ? 1 : rangeH <= 168 ? 10 : 60;  // per point
+  const spans = [];
+  if (rangeH <= 24) {
+    spans.push(["&minutes=" + rangeH * 60, "&minutes=" + rangeH * 60]);
+  } else {
+    const end = Date.now();
+    for (let from = end - rangeH * HOUR; from < end; from += 120 * HOUR) {
+      const span = "&start=" + utc(from) + "&end=" + utc(Math.min(end, from + 120 * HOUR));
+      spans.push(["&average=" + minutes + span, "&median=" + minutes + span]);
+    }
+  }
+  const get = async (u) => {
+    const r = await fetch(u, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  };
+  const b1 = c.channel ? base(c.channel, c.read_key) : null;
+  const b2 = base(c.channel2, c.read_key2);
+  const [one, two] = await Promise.all([
+    b1 ? Promise.all(spans.map((sp) => get(b1 + sp[0]))) : Promise.resolve([]),
+    Promise.all(spans.map((sp) => get(b2 + sp[1]))),
+  ]);
+  const ft = "field" + (2 * slot - 1);
+  const fh = "field" + 2 * slot;
+  // ThingSpeak drops values for fields the channel hasn't turned on.
+  if (!(two[0] && two[0].channel && two[0].channel[ft])) throw new Error("slotfield");
+  const num = (v) => (v == null || v === "" || isNaN(v) ? null : Number(v));
+  const boiler = new Map();
+  for (const f of one.flatMap((p) => p.feeds || [])) {
+    if (rangeH > 24 || num(f.field3) != null) boiler.set(f.created_at, f);  // this device's own minutes only
+  }
+  const temps = new Map();
+  for (const f of two.flatMap((p) => p.feeds || [])) temps.set(f.created_at, f);
+  const times = [...new Set([...boiler.keys(), ...temps.keys()])].sort();
+  return {
+    times: times.map((x) => Date.parse(x)),
+    t: times.map((x) => num((temps.get(x) || {})[ft])),
+    h: times.map((x) => num((temps.get(x) || {})[fh])),
+    on: times.map((x) => num((boiler.get(x) || {}).field3)),  // 0 or 1 a minute, a share when averaged; null unknown
+    sp: times.map((x) => num((boiler.get(x) || {}).field4)),
+    period: minutes * 60e3,
+  };
+}
+
+const cloudOn = () => !!(status && status.cloud && status.cloud.enabled &&
+  (status.cloud.channel || status.cloud.channel2));
+// Where the chart of a sensor comes from in the cloud: its place's fields of
+// channel 2 (firmware with two channels), or channel 1 for the control sensor
+// (firmware with one); null when the cloud does not have it.
+function cloudSource(mac) {
+  const c = status && status.cloud;
+  if (!c || !c.enabled) return null;
+  if (c.channel2 !== undefined) {
+    const slot = (status.slots || []).findIndex((x) => x && x.mac === mac) + 1;
+    return slot && c.channel2 ? { c, slot } : null;
+  }
+  const ctl = status.thermostat && status.thermostat.sensor;
+  return c.channel && (!ctl || mac === ctl) ? { c, slot: 0 } : null;
 }
 
 async function fetchHistory() {
   let next = null;
   let source = "device";
   histCloudFail = false;
-  if (cloudOn() && isControlSensor(sensor)) {
+  const src = cloudSource(shownMac());
+  if (src) {
     try {
-      next = await fetchCloudHistory(status.cloud);
+      next = src.slot ? await fetchCloudHistory2(src.c, src.slot) : await fetchCloudHistory(src.c);
       source = "cloud";
     } catch (e) {
-      histCloudFail = e.message === "field1" ? "field1" : "fail";
+      histCloudFail = e.message === "field1" || e.message === "slotfield" ? e.message : "fail";
     }
   }
   if (!next && !REMOTE) {
@@ -3180,7 +3446,8 @@ function renderRanges() {
     setSeg("seg-range", "24");
   }
   $("hist-source").textContent = !histSource ? (REMOTE ? t("hist_remote_off") : "") : histSource === "cloud" ? t("hist_cloud")
-    : histCloudFail ? t(histCloudFail === "field1" ? "hist_cloud_nofield" : "hist_cloud_fail") : t("hist_device");
+    : histCloudFail ? t(histCloudFail === "field1" ? "hist_cloud_nofield" : histCloudFail === "slotfield" ? "hist_cloud_noslot"
+      : "hist_cloud_fail") : t("hist_device");
 }
 
 function visibleRange() {
@@ -3511,7 +3778,7 @@ onSeg("seg-measure", (v) => {
   renderChart();
 });
 $("sensor").addEventListener("change", (e) => {
-  sensor = Number(e.target.value);
+  histMac = e.target.value;
   hist = null;
   hideHover();
   fetchHistory();
@@ -3733,79 +4000,143 @@ $("ap-form").addEventListener("submit", async (e) => {
 let cloudInfo = null;   // ThingSpeak settings and state from the device
 let cloudFilled = false;  // the form has shown the device's values: since then, a difference is the user's edit
 
+// A firmware with two channels (the thermostat's, the sensors') sends "channel2".
+const twoChannels = () => !!(cloudInfo && cloudInfo.channel2 !== undefined);
+
+function cloudForm() {
+  const v = (id) => $(id).value.trim();
+  return {
+    enabled: $("cloud-on").checked,
+    channel: v("cloud-channel"), write_key: v("cloud-wkey").toUpperCase(), read_key: v("cloud-rkey").toUpperCase(),
+    channel2: v("cloud-channel2"), write_key2: v("cloud-wkey2").toUpperCase(), read_key2: v("cloud-rkey2").toUpperCase(),
+  };
+}
+const chText = (n) => (n ? String(n) : "");
+const ch1Edited = (f, c) => f.channel !== chText(c.channel) || f.write_key !== c.write_key || f.read_key !== c.read_key;
+const ch2Edited = (f, c) => f.channel2 !== chText(c.channel2) || f.write_key2 !== c.write_key2 || f.read_key2 !== c.read_key2;
+
 function cloudEdited() {
-  return cloudFilled && cloudInfo != null && ($("cloud-on").checked !== cloudInfo.enabled ||
-    $("cloud-channel").value.trim() !== (cloudInfo.channel ? String(cloudInfo.channel) : "") ||
-    $("cloud-wkey").value.trim().toUpperCase() !== cloudInfo.write_key ||
-    $("cloud-rkey").value.trim().toUpperCase() !== cloudInfo.read_key);
+  if (!cloudFilled || cloudInfo == null) return false;
+  const f = cloudForm();
+  return f.enabled !== cloudInfo.enabled || ch1Edited(f, cloudInfo) || (twoChannels() && ch2Edited(f, cloudInfo));
 }
 function updateCloudActions() { $("cloud-actions").hidden = !cloudEdited(); }
+
+const setText = (el, key, ...args) => { el.dataset.t = key; el.textContent = t(key, ...args); };
 
 function renderCloud() {
   const c = cloudInfo;
   if (!c) return;
+  const two = twoChannels();
+  const chs = c.channels || [];
   if (!c.enabled) setBadge($("cloud-badge"), "off", t("cloud_badge_off"));
-  else if (c.error) setBadge($("cloud-badge"), "crit", t("cloud_badge_err"));
+  else if (c.error || (two && chs.some((x) => x.error))) setBadge($("cloud-badge"), "crit", t("cloud_badge_err"));
   else if (c.ok_age_s != null) setBadge($("cloud-badge"), "ok", t("cloud_badge_ok"));
   else setBadge($("cloud-badge"), "warn", t("cloud_badge_wait"));
-  $("cloud-last-v").textContent = c.ok_age_s != null ? t("cloud_ago", fmtAgo(c.ok_age_s)) : "—";
+  $("cloud-ch1-title").hidden = !two;
+  $("cloud-ch2").hidden = !two;
+  setText($("cloud-send-help"), two ? "cloud_send_help2" : "cloud_send_help");
+  setText($("cloud-last-label"), two ? "cloud_last1" : "cloud_last");
+  const ago = (s) => (s != null ? t("cloud_ago", fmtAgo(s)) : "—");
+  $("cloud-last-v").textContent = ago(two && chs[0] ? chs[0].ok_age_s : c.ok_age_s);
+  $("cloud-last2-row").hidden = !two || !c.channel2;
+  $("cloud-last2-v").textContent = two && chs[1] ? ago(chs[1].ok_age_s) : "—";
+  const pending = two && c.enabled ? Math.max(0, ...chs.map((x) => x.pending || 0)) : 0;
+  $("cloud-pending-row").hidden = !pending;
+  $("cloud-pending-v").textContent = t("cloud_pending_v", pending);
   $("cloud-sent-v").textContent = String(c.sent);
+  setText($("cloud-link"), two ? "cloud_open1" : "cloud_open");
   $("cloud-link").href = "https://thingspeak.mathworks.com/channels/" + c.channel;
   $("cloud-link").hidden = !c.channel;
-  $("cloud-error").replaceChildren(c.enabled && c.error ? banner("crit", t("cloud_err_" + c.error)) : "");
+  $("cloud-link2").href = "https://thingspeak.mathworks.com/channels/" + c.channel2;
+  $("cloud-link2-row").hidden = !two || !c.channel2;
+  const errors = [];
+  if (c.enabled && two) {
+    chs.forEach((x, i) => {
+      if (x.error) errors.push(banner("crit", t("cloud_in", i + 1) + t("cloud_err_" + x.error)));
+    });
+  } else if (c.enabled && c.error) {
+    errors.push(banner("crit", t("cloud_err_" + c.error)));
+  }
+  $("cloud-error").replaceChildren(...errors);
 }
 
-let cloudCheck = null;    // what ThingSpeak says about the channel: {missing: [field numbers]} or {error}
-let cloudChecked = null;  // the channel and read key it was asked about
+let cloudCheck = null;    // what ThingSpeak says about the channels: {ch1, ch2}, each {fields: Set} or {error}
+let cloudChecked = null;  // the channels, read keys and places it was asked about
 
-// ThingSpeak keeps values only in the fields the channel has turned on and drops
-// the rest without an error, so the tab asks which ones the channel has.
+// ThingSpeak keeps values only in the fields a channel has turned on and drops
+// the rest without an error, so the tab asks which ones each channel has.
+async function askChannel(channel, readKey) {
+  try {
+    const r = await fetch("https://api.thingspeak.com/channels/" + channel + "/feeds.json?results=0" +
+      (readKey ? "&api_key=" + readKey : ""), { cache: "no-store" });
+    if (r.status === 404) return { error: "channel" };
+    if (r.status === 400) return { error: "rkey" };
+    if (!r.ok) return null;
+    const ch = (await r.json()).channel || {};
+    return { fields: new Set([1, 2, 3, 4, 5, 6, 7, 8].filter((n) => ch["field" + n])) };
+  } catch (e) {
+    return null;  // this phone can't reach ThingSpeak now: nothing to tell
+  }
+}
+
 async function checkChannel(force) {
   const c = cloudInfo;
-  const key = c && c.enabled && c.channel ? c.channel + ":" + c.read_key : "";
+  const two = twoChannels();
+  const places = JSON.stringify(status && status.slots ? placeMacs() : []);
+  const key = c && c.enabled ? [c.channel, c.read_key, two ? c.channel2 : "", two ? c.read_key2 : "", places].join(":") : "";
   if (!force && key === cloudChecked) return;
   cloudChecked = key;
   cloudCheck = null;
   renderCloudCheck();
   if (!key) return;
-  let result = null;
-  try {
-    const r = await fetch("https://api.thingspeak.com/channels/" + c.channel + "/feeds.json?results=0" +
-      (c.read_key ? "&api_key=" + c.read_key : ""), { cache: "no-store" });
-    if (r.status === 404) result = { error: "channel" };
-    else if (r.status === 400) result = { error: "rkey" };
-    else if (r.ok) {
-      const ch = (await r.json()).channel || {};
-      result = { missing: [1, 2, 3, 4].filter((n) => !ch["field" + n]) };
-    }
-  } catch (e) {
-    /* this phone can't reach ThingSpeak now: nothing to tell */
-  }
+  const [ch1, ch2] = await Promise.all([c.channel ? askChannel(c.channel, c.read_key) : null,
+    two && c.channel2 ? askChannel(c.channel2, c.read_key2) : null]);
   if (key !== cloudChecked) return;  // the settings changed meanwhile
-  cloudCheck = result;
+  cloudCheck = { ch1, ch2 };
   renderCloudCheck();
 }
 
 function renderCloudCheck() {
   const c = cloudCheck;
-  let note = "";
-  if (c && c.error) {
-    note = banner("crit", t("cloud_chk_" + c.error));
-  } else if (c && c.missing.some((n) => n < 4)) {
-    note = banner("warn", t("cloud_chk_missing", c.missing.map((n) => t("cloud_field_" + n)).join(", "), c.missing.length));
-  } else if (c && c.missing.length) {
-    note = document.createElement("p");  // the target line is optional: a quiet note
-    note.className = "help";
-    note.textContent = t("cloud_chk_target");
+  const two = twoChannels();
+  const notes = [];
+  const pre = (n) => (two ? t("cloud_in", n) : "");
+  if (c && c.ch1 && c.ch1.error) {
+    notes.push(banner("crit", pre(1) + t("cloud_chk_" + c.ch1.error)));
+  } else if (c && c.ch1) {
+    const missing = (two ? [3] : [1, 2, 3]).filter((n) => !c.ch1.fields.has(n));
+    if (missing.length) {
+      notes.push(banner("warn", pre(1) + t("cloud_chk_missing", missing.map((n) => t("cloud_field_" + n)).join(", "), missing.length)));
+    } else if (!c.ch1.fields.has(4)) {
+      const note = document.createElement("p");  // the target line is optional: a quiet note
+      note.className = "help";
+      note.textContent = pre(1) + t("cloud_chk_target");
+      notes.push(note);
+    }
   }
-  $("cloud-check").replaceChildren(note);
+  if (c && c.ch2 && c.ch2.error) {
+    notes.push(banner("crit", pre(2) + t("cloud_chk_" + c.ch2.error)));
+  } else if (c && c.ch2) {
+    const need = [];
+    placeMacs().forEach((m, i) => { if (m) need.push(2 * i + 1, 2 * i + 2); });
+    const missing = need.filter((n) => !c.ch2.fields.has(n));
+    if (missing.length) {
+      notes.push(banner("warn", pre(2) + t("cloud_chk_missing", missing.map((n) => t("cloud_field_s", n)).join(", "), missing.length)));
+    }
+  }
+  $("cloud-check").replaceChildren(...notes);
 }
 
 function fillCloudForm() {
-  $("cloud-on").checked = cloudInfo.enabled;
-  $("cloud-channel").value = cloudInfo.channel ? String(cloudInfo.channel) : "";
-  $("cloud-wkey").value = cloudInfo.write_key;
-  $("cloud-rkey").value = cloudInfo.read_key;
+  const c = cloudInfo;
+  $("cloud-on").checked = c.enabled;
+  $("cloud-channel").value = chText(c.channel);
+  $("cloud-wkey").value = c.write_key;
+  $("cloud-rkey").value = c.read_key;
+  $("cloud-channel2").value = chText(c.channel2);
+  $("cloud-wkey2").value = c.write_key2 || "";
+  $("cloud-rkey2").value = c.read_key2 || "";
   cloudFilled = true;
   updateCloudActions();
 }
@@ -3829,28 +4160,46 @@ $("cloud-form").addEventListener("change", updateCloudActions);
 $("cloud-discard").addEventListener("click", () => { fillCloudForm(); showMsg("cloud-msg"); });
 $("cloud-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const on = $("cloud-on").checked;
-  const channel = $("cloud-channel").value.trim();
-  const wkey = $("cloud-wkey").value.trim().toUpperCase();
-  const rkey = $("cloud-rkey").value.trim().toUpperCase();
+  const two = twoChannels();
+  const f = cloudForm();
   const keyOk = (k) => k === "" || /^[A-Z0-9]{16}$/.test(k);
-  if (!/^\d{0,10}$/.test(channel) || Number(channel) > 4294967295 || (on && !Number(channel))) {
+  const chOk = (ch) => /^\d{0,10}$/.test(ch) && Number(ch) <= 4294967295;
+  if (!chOk(f.channel) || (two && !chOk(f.channel2))) {
     showMsg("cloud-msg", "crit", t("err_channel"));
     return;
   }
-  if (!keyOk(wkey) || !keyOk(rkey) || (on && !wkey)) {
+  if (!keyOk(f.write_key) || !keyOk(f.read_key) || (two && (!keyOk(f.write_key2) || !keyOk(f.read_key2)))) {
+    showMsg("cloud-msg", "crit", t("err_key"));
+    return;
+  }
+  if (two) {
+    // Each channel is set up (a number and a write key) or left empty; on needs one set up.
+    const pairOk = (ch, w) => !!Number(ch) === (w !== "");
+    if (!pairOk(f.channel, f.write_key) || !pairOk(f.channel2, f.write_key2)) {
+      showMsg("cloud-msg", "crit", t("err_ch_pair"));
+      return;
+    }
+    if (f.enabled && !Number(f.channel) && !Number(f.channel2)) {
+      showMsg("cloud-msg", "crit", t("err_channel"));
+      return;
+    }
+  } else if (f.enabled && !Number(f.channel)) {
+    showMsg("cloud-msg", "crit", t("err_channel"));
+    return;
+  } else if (f.enabled && !f.write_key) {
     showMsg("cloud-msg", "crit", t("err_key"));
     return;
   }
   const changes = [];
-  if (on !== cloudInfo.enabled) changes.push(t(on ? "ch_cloud_on" : "ch_cloud_off"));
-  if (Number(channel) !== cloudInfo.channel || wkey !== cloudInfo.write_key || rkey !== cloudInfo.read_key) {
-    changes.push(t("ch_cloud_cfg"));
-  }
+  if (f.enabled !== cloudInfo.enabled) changes.push(t(f.enabled ? "ch_cloud_on" : "ch_cloud_off"));
+  if (ch1Edited(f, cloudInfo)) changes.push(t("ch_cloud_cfg"));
+  if (two && ch2Edited(f, cloudInfo)) changes.push(t("ch_cloud_cfg2"));
   if (!(await confirmDialog(t("sure"), changes.join(" "), t("yes_apply")))) return;
   $("cloud-save").disabled = true;
   try {
-    const r = await postJson("/api/cloud", { enabled: on, channel: Number(channel) || 0, write_key: wkey, read_key: rkey });
+    const body = { enabled: f.enabled, channel: Number(f.channel) || 0, write_key: f.write_key, read_key: f.read_key };
+    if (two) Object.assign(body, { channel2: Number(f.channel2) || 0, write_key2: f.write_key2, read_key2: f.read_key2 });
+    const r = await postJson("/api/cloud", body);
     cloudInfo = await r.json();
     fillCloudForm();
     renderCloud();
