@@ -3287,6 +3287,12 @@ async function fetchDeviceHistory() {
   };
 }
 
+// ThingSpeak's servers keep answers for a few minutes and give a repeated
+// request an old copy: its newest minutes missing, and one channel older than
+// the other. So every read asks with an address of its own.
+let tsReads = 0;
+const tsFresh = () => "&_=" + Date.now().toString(36) + (++tsReads).toString(36);
+
 // ThingSpeak keeps every minute for good. It returns at most 8000 entries per
 // request, so 7 and 30 days come in slices of 5 days, a point per 10 or 60 minutes.
 // Anyone with the write key can add entries too: the example link on the
@@ -3310,7 +3316,7 @@ async function fetchCloudHistory(c) {
     }
   }
   const parts = await Promise.all(urls.map(async (u) => {
-    const r = await fetch(u, { cache: "no-store" });
+    const r = await fetch(u + tsFresh(), { cache: "no-store" });
     if (!r.ok) throw new Error(r.status);
     return r.json();
   }));
@@ -3360,7 +3366,7 @@ async function fetchCloudHistory2(c, slot) {
     }
   }
   const get = async (u) => {
-    const r = await fetch(u, { cache: "no-store" });
+    const r = await fetch(u + tsFresh(), { cache: "no-store" });
     if (!r.ok) throw new Error(r.status);
     return r.json();
   };
@@ -3427,26 +3433,34 @@ function cloudSource(mac) {
   return c.channel && (!ctl || mac === ctl) ? { c, slot: 0 } : null;
 }
 
+// Loads overlap (the tab opened again, another sensor or range, the minute's
+// refresh) and may answer out of order: only the newest one's answer is shown,
+// so an older one cannot bring back another sensor's or range's chart.
+let histSeq = 0;
+
 async function fetchHistory() {
+  const seq = ++histSeq;
   let next = null;
   let source = "device";
-  histCloudFail = false;
+  let cloudFail = false;
   const src = cloudSource(shownMac());
   if (src) {
     try {
       next = src.slot ? await fetchCloudHistory2(src.c, src.slot) : await fetchCloudHistory(src.c);
       source = "cloud";
     } catch (e) {
-      histCloudFail = e.message === "field1" || e.message === "slotfield" ? e.message : "fail";
+      cloudFail = e.message === "field1" || e.message === "slotfield" ? e.message : "fail";
     }
   }
-  if (!next && !REMOTE) {
+  if (!next && !REMOTE && seq === histSeq) {
     try {
       next = await fetchDeviceHistory();
     } catch (e) {
       /* keep the previous frame */
     }
   }
+  if (seq !== histSeq) return;
+  histCloudFail = cloudFail;
   if (next) {
     hist = next;
     histSource = source;
@@ -4090,7 +4104,7 @@ let cloudChecked = null;  // the channels, read keys and places it was asked abo
 async function askChannel(channel, readKey) {
   try {
     const r = await fetch("https://api.thingspeak.com/channels/" + channel + "/feeds.json?results=0" +
-      (readKey ? "&api_key=" + readKey : ""), { cache: "no-store" });
+      (readKey ? "&api_key=" + readKey : "") + tsFresh(), { cache: "no-store" });
     if (r.status === 404) return { error: "channel" };
     if (r.status === 400) return { error: "rkey" };
     if (!r.ok) return null;
