@@ -3339,9 +3339,11 @@ async function fetchCloudHistory(c) {
 }
 
 // Two channels: the boiler and the target in channel 1, Sensör n in fields
-// 2n-1 (°C) and 2n (%) of channel 2, at the same minutes (the device stamps
-// both with the minute's own time). Stray entries (the API page's test link)
-// lack channel 1's field3 and are left out, as on one channel.
+// 2n-1 (°C) and 2n (%) of channel 2, at the same minutes. A minute's two
+// records are paired when close, not only at the same second: firmware
+// 603e05ad could stamp a minute a second apart on the two channels (channel 2
+// sent it later). Stray entries (the API page's test link) lack channel 1's
+// field3 and are left out, as on one channel.
 async function fetchCloudHistory2(c, slot) {
   const base = (ch, key) => "https://api.thingspeak.com/channels/" + ch + "/feeds.json?round=2&timezone=UTC" +
     (key ? "&api_key=" + key : "");
@@ -3379,13 +3381,32 @@ async function fetchCloudHistory2(c, slot) {
   }
   const temps = new Map();
   for (const f of two.flatMap((p) => p.feeds || [])) temps.set(f.created_at, f);
-  const times = [...new Set([...boiler.keys(), ...temps.keys()])].sort();
+  const byTime = (m) => [...m.entries()].map(([at, f]) => [Date.parse(at), f]).sort((a, b) => a[0] - b[0]);
+  const p1 = byTime(boiler);
+  const p2 = byTime(temps);
+  const near = (minutes * 60e3) / 3;  // well under a point's period
+  const rows = [];  // [time, channel 1 record, channel 2 record]
+  for (let i = 0, j = 0; i < p1.length || j < p2.length;) {
+    const a = p1[i];
+    const b = p2[j];
+    if (a && b && Math.abs(a[0] - b[0]) <= near) {
+      rows.push([b[0], a[1], b[1]]);
+      i++;
+      j++;
+    } else if (b && (!a || b[0] < a[0])) {
+      rows.push([b[0], null, b[1]]);
+      j++;
+    } else {
+      rows.push([a[0], a[1], null]);
+      i++;
+    }
+  }
   return {
-    times: times.map((x) => Date.parse(x)),
-    t: times.map((x) => num((temps.get(x) || {})[ft])),
-    h: times.map((x) => num((temps.get(x) || {})[fh])),
-    on: times.map((x) => num((boiler.get(x) || {}).field3)),  // 0 or 1 a minute, a share when averaged; null unknown
-    sp: times.map((x) => num((boiler.get(x) || {}).field4)),
+    times: rows.map((r) => r[0]),
+    t: rows.map((r) => num((r[2] || {})[ft])),
+    h: rows.map((r) => num((r[2] || {})[fh])),
+    on: rows.map((r) => num((r[1] || {}).field3)),  // 0 or 1 a minute, a share when averaged; null unknown
+    sp: rows.map((r) => num((r[1] || {}).field4)),
     period: minutes * 60e3,
   };
 }
