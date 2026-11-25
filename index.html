@@ -256,6 +256,10 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .day-bar .now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
 .day-axis { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .slots { margin-top: 10px; }
+/* The name on the home network: the field, then ".local". */
+.host-row { display: flex; align-items: center; gap: 6px; }
+.host-row .input { flex: 1; min-width: 0; }
+.host-suffix { color: var(--muted); }
 .slot { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
 .slot:first-child { border-top: 0; }
 .slot .input { width: 108px; flex: none; height: 40px; padding: 0 8px; font-variant-numeric: tabular-nums; }
@@ -625,7 +629,7 @@ th:first-child, td:first-child { text-align: left; }
         <div id="slots-field" class="field" hidden>
           <div class="label" data-t="slots_title">Sensörler</div>
           <div id="slots-list"></div>
-          <p class="help" data-t="slots_help">Sensör 1–4, ThingSpeak'in 2. kanalındaki temp1/hum1 … temp4/hum4 alanlarıdır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.</p>
+          <p id="slots-help" class="help" data-t="slots_help">Sensör 1–4, ThingSpeak'in 2. kanalındaki temp1/hum1 … temp4/hum4 alanlarıdır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.</p>
           <p id="slots-others" class="help"></p>
         </div>
         <div id="names-field" class="field" hidden>
@@ -690,10 +694,25 @@ th:first-child, td:first-child { text-align: left; }
         <div><dt data-t="network">Ağ</dt><dd id="wifi-ssid-v">—</dd></div>
         <div><dt data-t="ip">IP adresi</dt><dd id="wifi-ip-v">—</dd></div>
         <div><dt data-t="signal">Sinyal</dt><dd id="wifi-rssi-v">—</dd></div>
-        <div><dt data-t="local_addr">Yerel adres</dt><dd>thermcon.local</dd></div>
+        <div><dt data-t="local_addr">Yerel adres</dt><dd id="wifi-host-v">thermcon.local</dd></div>
       </dl>
       <div id="wifi-change-row" class="actions" hidden><button id="wifi-change" class="btn btn-secondary" type="button" data-t="other_net">Farklı bir ağa bağlan</button></div>
     </div>
+    <!-- The name on the home network, on a firmware that lets it change (it sends "host") -->
+    <form id="host-form" class="card" autocomplete="off" hidden>
+      <div class="card-head"><span class="card-title" data-t="host_title">Yerel adres</span></div>
+      <div class="field">
+        <label for="host-name" data-t="host_label">Cihazın bu ağdaki adı</label>
+        <div class="host-row"><input id="host-name" class="input" type="text" maxlength="32" autocapitalize="none" autocorrect="off" spellcheck="false"><span class="host-suffix">.local</span></div>
+        <p class="help" data-t="host_help">Bu ağdaki tarayıcılar cihazı bu adla açar. Küçük harf, rakam ve tire (-); en fazla 32 karakter.</p>
+      </div>
+      <div id="host-note"></div>
+      <div id="host-actions" class="actions" hidden>
+        <button id="host-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
+        <button id="host-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
+      </div>
+    </form>
+    <div id="host-msg" role="alert"></div>
     <form id="wifi-form" class="card" autocomplete="off" hidden>
       <div class="card-head">
         <span class="card-title" data-t="join_net">Ağa bağlan</span>
@@ -835,7 +854,7 @@ th:first-child, td:first-child { text-align: left; }
       </div>
       <div id="cloud-ch2" hidden>
         <div class="sep"></div>
-        <div class="label cloud-ch-title" data-t="cloud_ch2">Kanal 2 · sensörler</div>
+        <div id="cloud-ch2-title" class="label cloud-ch-title" data-t="cloud_ch2">Kanal 2 · sensörler</div>
         <div class="field">
           <label for="cloud-channel2" data-t="cloud_channel">Kanal numarası (Channel ID)</label>
           <input id="cloud-channel2" class="input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false">
@@ -850,10 +869,28 @@ th:first-child, td:first-child { text-align: left; }
           <p class="help" data-t="cloud_ch2_help">Sensör 1 field1–2'ye, Sensör 2 field3–4'e, Sensör 3 field5–6'ya, Sensör 4 field7–8'e yazılır (temp1/hum1 … temp4/hum4).</p>
         </div>
       </div>
+      <div id="cloud-ch3" hidden>
+        <div class="sep"></div>
+        <div class="label cloud-ch-title" data-t="cloud_ch3">Kanal 3 · sensörler 5–6</div>
+        <div class="field">
+          <label for="cloud-channel3" data-t="cloud_channel">Kanal numarası (Channel ID)</label>
+          <input id="cloud-channel3" class="input" type="text" inputmode="numeric" maxlength="10" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="cloud-wkey3">Write API Key</label>
+          <input id="cloud-wkey3" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="cloud-rkey3">Read API Key</label>
+          <input id="cloud-rkey3" class="input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">
+          <p class="help" data-t="cloud_ch3_help">Sensör 5 field1–2'ye, Sensör 6 field3–4'e yazılır.</p>
+        </div>
+      </div>
       <div class="sep"></div>
       <dl class="kv">
         <div><dt id="cloud-last-label" data-t="cloud_last">Son gönderim</dt><dd id="cloud-last-v">—</dd></div>
         <div id="cloud-last2-row" hidden><dt data-t="cloud_last2">Son gönderim, kanal 2</dt><dd id="cloud-last2-v">—</dd></div>
+        <div id="cloud-last3-row" hidden><dt data-t="cloud_last3">Son gönderim, kanal 3</dt><dd id="cloud-last3-v">—</dd></div>
         <div id="cloud-pending-row" hidden><dt data-t="cloud_pending">Bekleyen dakikalar</dt><dd id="cloud-pending-v">—</dd></div>
         <div><dt data-t="cloud_sent">Gönderilen (açılıştan beri)</dt><dd id="cloud-sent-v">—</dd></div>
       </dl>
@@ -861,6 +898,7 @@ th:first-child, td:first-child { text-align: left; }
       <div id="cloud-check"></div>
       <p class="help"><a id="cloud-link" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open">Kanalı ThingSpeak'te aç</a></p>
       <p class="help" id="cloud-link2-row" hidden><a id="cloud-link2" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open2">Kanal 2'yi ThingSpeak'te aç</a></p>
+      <p class="help" id="cloud-link3-row" hidden><a id="cloud-link3" href="https://thingspeak.mathworks.com/" target="_blank" rel="noopener" data-t="cloud_open3">Kanal 3'ü ThingSpeak'te aç</a></p>
       <div id="cloud-actions" class="actions" hidden>
         <button id="cloud-discard" class="btn btn-secondary" type="button" data-t="cancel">Vazgeç</button>
         <button id="cloud-save" class="btn btn-primary" type="submit" data-t="apply">Uygula</button>
@@ -968,6 +1006,7 @@ th:first-child, td:first-child { text-align: left; }
       <dl class="kv">
         <div><dt data-t="fw_running">Yüklü sürüm</dt><dd id="fw-running">—</dd></div>
         <div><dt data-t="fw_build">Kimlik</dt><dd id="fw-build">—</dd></div>
+        <div id="fw-heap-row" hidden><dt data-t="fw_heap">Boş bellek</dt><dd id="fw-heap">—</dd></div>
       </dl>
       <div id="fw-state"></div>
       <div class="sep"></div>
@@ -1050,7 +1089,7 @@ const STALE_S = 180;
 const OTHER = "\u0000other";
 const T_MIN = 5;          // targets, °C, in steps of tStep()
 const T_MAX = 30;
-const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps
+const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps (the narrowest on firmware without "band_min")
 const H_MAX = 3;
 const H_DEFAULT = 1;
 const D_MIN = 0;          // relay dwell, seconds
@@ -1199,7 +1238,14 @@ const L = {
     cloud_open: "Kanalı ThingSpeak'te aç",
     cloud_open1: "Kanal 1'i ThingSpeak'te aç",
     cloud_open2: "Kanal 2'yi ThingSpeak'te aç",
+    cloud_open3: "Kanal 3'ü ThingSpeak'te aç",
     cloud_send_help2: "Dakikada bir: kombi ve hedef 1. kanala, Sensör 1–4'ün sıcaklık ve nemi 2. kanala gider. İnternet yokken dakikalar cihazda bekler (24 saate kadar), bağlantı gelince kendi zamanlarıyla gönderilir.",
+    cloud_send_help3: "Dakikada bir: kombi ve hedef 1. kanala, Sensör 1–4'ün sıcaklık ve nemi 2. kanala, Sensör 5–6'nınki 3. kanala gider. İnternet yokken dakikalar cihazda bekler (24 saate kadar), bağlantı gelince kendi zamanlarıyla gönderilir.",
+    cloud_ch2_14: "Kanal 2 · sensörler 1–4",
+    cloud_ch3: "Kanal 3 · sensörler 5–6",
+    cloud_ch3_help: "Sensör 5 field1–2'ye, Sensör 6 field3–4'e yazılır.",
+    cloud_last3: "Son gönderim, kanal 3",
+    ch_cloud_cfg3: "Kanal 3'ün bilgileri değişecek.",
     cloud_ch1: "Kanal 1 · kombi ve hedef",
     cloud_ch2: "Kanal 2 · sensörler",
     cloud_ch2_help: "Sensör 1 field1–2'ye, Sensör 2 field3–4'e, Sensör 3 field5–6'ya, Sensör 4 field7–8'e yazılır (temp1/hum1 … temp4/hum4).",
@@ -1210,10 +1256,10 @@ const L = {
     cloud_in: (n) => "Kanal " + n + ": ",
     cloud_err_no_clock: "Saat henüz bilinmiyor; dakikalar saat öğrenilince gönderilecek.",
     cloud_err_no_mem: "Cihazda bellek yetmedi; bir dakika sonra yeniden denenecek.",
-    cloud_field_s: (n) => "Field " + n + " (Sensör " + Math.ceil(n / 2) + (n % 2 ? " sıcaklık" : " nem") + ")",
+    cloud_field_s: (n, first = 0) => "Field " + n + " (Sensör " + (first + Math.ceil(n / 2)) + (n % 2 ? " sıcaklık" : " nem") + ")",
     ch_cloud_cfg2: "Kanal 2'nin bilgileri değişecek.",
     err_ch_pair: "Bir kanal için kanal numarası ile Write API Key birlikte girilir (ya da ikisi de boş bırakılır).",
-    hist_cloud_noslot: "ThingSpeak'in 2. kanalında bu sensörün alanları açık değil; cihazdaki veriler gösteriliyor.",
+    hist_cloud_noslot: "ThingSpeak kanalında bu sensörün alanları açık değil; cihazdaki veriler gösteriliyor.",
     cloud_ago: (ago) => ago + " önce",
     cloud_badge_ok: "Gönderiyor", cloud_badge_err: "Hata", cloud_badge_off: "Kapalı", cloud_badge_wait: "Bekliyor",
     cloud_err_no_wifi: "İnternet bağlantısı yok; veriler gönderilemiyor.",
@@ -1244,6 +1290,14 @@ const L = {
     ip: "IP adresi",
     signal: "Sinyal",
     local_addr: "Yerel adres",
+    host_title: "Yerel adres",
+    host_label: "Cihazın bu ağdaki adı",
+    host_help: "Bu ağdaki tarayıcılar cihazı bu adla açar. Küçük harf, rakam ve tire (-); en fazla 32 karakter.",
+    host_clash: (name, now) => "Ağda “" + name + "” adını kullanan başka bir cihaz var; Thermcon şimdilik http://" + now +
+      ".local adresinde. Ad boşalınca birkaç dakika içinde kendiliğinden geri alınır.",
+    err_host: "Ad 1–32 karakter olmalı: küçük harf, rakam ve tire; tireyle başlayıp bitemez.",
+    conf_host: (name) => "Cihazın yerel adresi http://" + name + ".local olacak; eski adla açılan yer imleri çalışmaz.",
+    host_moving: (name) => "Kaydedildi. Bu sayfa birazdan http://" + name + ".local adresinden yeniden açılacak.",
     other_net: "Farklı bir ağa bağlan",
     join_net: "Ağa bağlan",
     rescan: "Ağları yeniden tara",
@@ -1296,6 +1350,8 @@ const L = {
     fw_title: "Yazılım",
     fw_running: "Yüklü sürüm",
     fw_build: "Kimlik",
+    fw_heap: "Boş bellek",
+    heap_v: (free, min) => free + NBSP + "KB · en düşük " + min + NBSP + "KB",
     fw_new: "Güncelleme",
     fw_pick: "Dosya seç (.bin)",
     fw_pick_help: "Bilgisayarda derlenen therm.bin dosyasını seçin; cihaz Wi-Fi üzerinden güncellenir.",
@@ -1400,7 +1456,8 @@ const L = {
     scan_fail: "Ağlar alınamadı · adı elle yaz",
     err_ssid: "Ağ adı 1–32 karakter olmalı.",
     err_wifi_pass: "Wi-Fi şifresi 8–64 karakter olmalı (şifresiz ağ için boş bırak).",
-    wifi_saved: (ssid) => "Kaydedildi. Thermcon “" + ssid + "” ağına bağlanıyor. Bu sayfa bağlantıyı kaybedebilir; yeni ağda http://thermcon.local adresinden açabilirsin.",
+    wifi_saved: (ssid, host) => "Kaydedildi. Thermcon “" + ssid + "” ağına bağlanıyor. Bu sayfa bağlantıyı kaybedebilir; yeni ağda http://" +
+      (host || "thermcon") + ".local adresinden açabilirsin.",
     conf_wifi: (ssid) => "Thermcon “" + ssid + "” ağına bağlanacak.",
     yes_connect: "Evet, bağlan",
     ap_on: "Açık", ap_off: "Kapalı", unknown: "Bilinmiyor",
@@ -1439,8 +1496,10 @@ const L = {
     conf_timer: (m) => "Zamanlayıcı her saatin ilk " + m + " dakikasında ısıtacak.",
     conf_ceil: (c) => "Oda " + c + " ya da üstündeyse o saatin ısıtması atlanacak.",
     sensor_names: "Sensör isimleri",
+    names_help: "İsim verilen sensör, etrafta başka sensörler olsa da listeden çıkmaz.",
     slots_title: "Sensörler",
     slots_help: "Sensör 1–4, ThingSpeak'in 2. kanalındaki temp1/hum1 … temp4/hum4 alanlarıdır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.",
+    slots_help6: "Sensör 1–4 ThingSpeak'in 2. kanalına (temp1/hum1 … temp4/hum4), Sensör 5–6 3. kanalına (field1–4) yazılır. Bir sensörü başka bir yere taşımak ThingSpeak'teki geçmişini böler.",
     slot_n: (n) => "Sensör " + n,
     slot_empty: "— boş —",
     slot_aria: (n) => "Sensör " + n + " yerindeki sensör",
@@ -1480,6 +1539,9 @@ const L = {
     ev_sensor: "Sensörden veri gelmedi / yeniden geldi",
     ev_battery: "Sensör pili %20'nin altında",
     ev_long_run: "Kombi 2 saattir aralıksız çalışıyor",
+    ev_long_run_set: "Kombi uzun süre aralıksız çalışıyor",
+    long_run_after: "Süre",
+    long_run_down: "15 dakika kısalt", long_run_up: "15 dakika uzat",
     ev_room: "Oda sıcaklığı sınırların dışında",
     ev_online: "Elektrik ya da internet kesintisinden sonra",
     ev_ap: "Cihazın yedek Wi-Fi ağı açıldı",
@@ -1615,7 +1677,14 @@ const L = {
     cloud_open: "Открыть канал в ThingSpeak",
     cloud_open1: "Открыть канал 1 в ThingSpeak",
     cloud_open2: "Открыть канал 2 в ThingSpeak",
+    cloud_open3: "Открыть канал 3 в ThingSpeak",
     cloud_send_help2: "Раз в минуту: котёл и цель — в канал 1, температура и влажность датчиков 1–4 — в канал 2. Без интернета минуты ждут на устройстве (до 24 часов) и отправляются со своим временем, когда связь появится.",
+    cloud_send_help3: "Раз в минуту: котёл и цель — в канал 1, температура и влажность датчиков 1–4 — в канал 2, датчиков 5–6 — в канал 3. Без интернета минуты ждут на устройстве (до 24 часов) и отправляются со своим временем, когда связь появится.",
+    cloud_ch2_14: "Канал 2 · датчики 1–4",
+    cloud_ch3: "Канал 3 · датчики 5–6",
+    cloud_ch3_help: "Датчик 5 пишется в field1–2, датчик 6 — в field3–4.",
+    cloud_last3: "Последняя отправка, канал 3",
+    ch_cloud_cfg3: "Данные канала 3 изменятся.",
     cloud_ch1: "Канал 1 · котёл и цель",
     cloud_ch2: "Канал 2 · датчики",
     cloud_ch2_help: "Датчик 1 пишется в field1–2, датчик 2 — в field3–4, датчик 3 — в field5–6, датчик 4 — в field7–8 (temp1/hum1 … temp4/hum4).",
@@ -1626,10 +1695,10 @@ const L = {
     cloud_in: (n) => "Канал " + n + ": ",
     cloud_err_no_clock: "Время ещё неизвестно; минуты отправятся, когда устройство узнает время.",
     cloud_err_no_mem: "Устройству не хватило памяти; повтор через минуту.",
-    cloud_field_s: (n) => "Field " + n + " (датчик " + Math.ceil(n / 2) + (n % 2 ? ", температура" : ", влажность") + ")",
+    cloud_field_s: (n, first = 0) => "Field " + n + " (датчик " + (first + Math.ceil(n / 2)) + (n % 2 ? ", температура" : ", влажность") + ")",
     ch_cloud_cfg2: "Данные канала 2 изменятся.",
     err_ch_pair: "Номер канала и Write API Key вводятся вместе (или оба остаются пустыми).",
-    hist_cloud_noslot: "В канале 2 ThingSpeak не включены поля этого датчика; показаны данные с устройства.",
+    hist_cloud_noslot: "В канале ThingSpeak не включены поля этого датчика; показаны данные с устройства.",
     cloud_ago: (ago) => ago + " назад",
     cloud_badge_ok: "Отправляет", cloud_badge_err: "Ошибка", cloud_badge_off: "Выкл.", cloud_badge_wait: "Ожидание",
     cloud_err_no_wifi: "Нет подключения к интернету; данные не отправляются.",
@@ -1660,6 +1729,14 @@ const L = {
     ip: "IP-адрес",
     signal: "Сигнал",
     local_addr: "Локальный адрес",
+    host_title: "Локальный адрес",
+    host_label: "Имя устройства в этой сети",
+    host_help: "Браузеры в этой сети открывают устройство по этому имени. Строчные латинские буквы, цифры и дефис (-); не более 32 символов.",
+    host_clash: (name, now) => "В сети есть другое устройство с именем «" + name + "»; пока Thermcon доступен по адресу http://" +
+      now + ".local. Когда имя освободится, оно вернётся само через несколько минут.",
+    err_host: "Имя: 1–32 символа — строчные латинские буквы, цифры и дефис; не может начинаться или заканчиваться дефисом.",
+    conf_host: (name) => "Локальный адрес устройства станет http://" + name + ".local; закладки со старым именем перестанут работать.",
+    host_moving: (name) => "Сохранено. Страница скоро откроется заново по адресу http://" + name + ".local.",
     other_net: "Подключиться к другой сети",
     join_net: "Подключение к сети",
     rescan: "Искать сети заново",
@@ -1712,6 +1789,8 @@ const L = {
     fw_title: "Прошивка",
     fw_running: "Установленная версия",
     fw_build: "Идентификатор",
+    fw_heap: "Свободная память",
+    heap_v: (free, min) => free + NBSP + "КБ · минимум " + min + NBSP + "КБ",
     fw_new: "Обновление",
     fw_pick: "Выбрать файл (.bin)",
     fw_pick_help: "Выберите файл therm.bin, собранный на компьютере; устройство обновится по Wi-Fi.",
@@ -1816,7 +1895,8 @@ const L = {
     scan_fail: "Не удалось получить список сетей · введите имя вручную",
     err_ssid: "Имя сети должно содержать 1–32 символа.",
     err_wifi_pass: "Пароль Wi-Fi должен содержать 8–64 символа (для открытой сети оставьте пустым).",
-    wifi_saved: (ssid) => "Сохранено. Thermcon подключается к сети «" + ssid + "». Страница может потерять связь; в новой сети откройте http://thermcon.local.",
+    wifi_saved: (ssid, host) => "Сохранено. Thermcon подключается к сети «" + ssid + "». Страница может потерять связь; в новой сети откройте http://" +
+      (host || "thermcon") + ".local.",
     conf_wifi: (ssid) => "Thermcon подключится к сети «" + ssid + "».",
     yes_connect: "Да, подключить",
     ap_on: "Вкл.", ap_off: "Выкл.", unknown: "Неизвестно",
@@ -1855,8 +1935,10 @@ const L = {
     conf_timer: (m) => "Таймер будет греть первые " + m + NBSP + "мин каждого часа.",
     conf_ceil: (c) => "Если в комнате " + c + " или теплее, нагрев в этот час будет пропущен.",
     sensor_names: "Названия датчиков",
+    names_help: "Датчик с названием остаётся в списке, даже если рядом есть другие датчики.",
     slots_title: "Датчики",
     slots_help: "Датчики 1–4 — это поля temp1/hum1 … temp4/hum4 канала 2 ThingSpeak. Перенос датчика на другое место разделит его историю в ThingSpeak.",
+    slots_help6: "Датчики 1–4 записываются в канал 2 ThingSpeak (temp1/hum1 … temp4/hum4), датчики 5–6 — в канал 3 (field1–4). Перенос датчика на другое место разделит его историю в ThingSpeak.",
     slot_n: (n) => "Датчик " + n,
     slot_empty: "— пусто —",
     slot_aria: (n) => "Датчик на месте " + n,
@@ -1896,6 +1978,9 @@ const L = {
     ev_sensor: "Нет данных от датчика / данные снова есть",
     ev_battery: "Батарея датчика ниже 20" + NBSP + "%",
     ev_long_run: "Котёл работает 2" + NBSP + "ч без перерыва",
+    ev_long_run_set: "Котёл долго работает без перерыва",
+    long_run_after: "Через",
+    long_run_down: "Уменьшить на 15 минут", long_run_up: "Увеличить на 15 минут",
     ev_room: "Температура в комнате вне границ",
     ev_online: "После отключения питания или интернета",
     ev_ap: "Открыта резервная сеть Wi-Fi устройства",
@@ -2353,9 +2438,10 @@ function syncClock() {
     .then(fetchStatus, () => { timeSent = false; });
 }
 
-// The sensors whose history Geçmiş can show: Sensör 1-4 (in the cloud, from
-// anywhere), and at home the others the device keeps 24 hours of. On a
-// firmware without places, at home only (the cloud has the control sensor).
+// The sensors whose history Geçmiş can show: those in places (in the cloud,
+// from anywhere), and at home the others the device keeps 24 hours of (it
+// says which with "hist"; before that, it kept every one's). On a firmware
+// without places, at home only (the cloud has the control sensor).
 function pickerSensors() {
   if (!status) return [];
   const out = [];
@@ -2364,7 +2450,7 @@ function pickerSensors() {
   }
   if (!REMOTE) {
     for (const s of status.sensors) {
-      if (!out.some((o) => o.mac === s.mac) && s.t != null) out.push({ mac: s.mac, label: sensorName(s) });
+      if (!out.some((o) => o.mac === s.mac) && s.t != null && s.hist !== false) out.push({ mac: s.mac, label: sensorName(s) });
     }
   }
   return out;
@@ -2430,6 +2516,7 @@ function renderStatus() {
   }
   if (!$("panel-cloud").hidden && !$("cls-remote").hidden && Date.now() - remoteAt > 10e3) loadRemote();
   if (!$("panel-ap").hidden && status) $("uptime-v").textContent = fmtAgo(status.uptime_s + (Date.now() - statusAt) / 1000);
+  if (!$("panel-general").hidden) renderHeap();
 }
 
 /* ---------- the room: a card per sensor ---------- */
@@ -2940,6 +3027,9 @@ $("prog-apply").addEventListener("click", async () => {
 /* ---------- thermostat: Gelişmiş ---------- */
 
 const roundTenth = (v) => Math.round(v * 10) / 10;
+// The narrowest band (Eşit) and the least start + stop (Ayrı) the device takes:
+// 0.1 °C since it says so, 0.2 before.
+const bandMin = () => (status && status.thermostat && status.thermostat.band_min != null ? status.thermostat.band_min : H_MIN);
 
 function renderAdvanced(reset) {
   const th = status && status.thermostat;
@@ -2973,7 +3063,7 @@ function renderAdvanced(reset) {
   $("hyst-equal").hidden = apart;
   $("hyst-split").hidden = !apart;
   $("hyst-value").textContent = fmtC(advHyst);
-  $("hyst-down").disabled = advHyst <= H_MIN + 1e-6;
+  $("hyst-down").disabled = advHyst <= bandMin() + 1e-6;
   $("hyst-up").disabled = advHyst >= H_MAX - 1e-6;
   $("below-value").textContent = fmtC(advBelow);
   $("above-value").textContent = fmtC(advAbove);
@@ -3009,7 +3099,10 @@ function renderAdvanced(reset) {
   const namesOk = !slotsOk && sensors.some((s) => s.name !== undefined);
   $("slots-field").hidden = !slotsOk;
   $("names-field").hidden = !namesOk;
-  if (slotsOk) renderPlaces(th);
+  if (slotsOk) {
+    renderPlaces(th);
+    setText($("slots-help"), status.slots.length > 4 ? "slots_help6" : "slots_help");
+  }
   if (namesOk) renderNames(sensors, th);
 
   setSeg("seg-relay", advRelay);
@@ -3041,12 +3134,14 @@ function knownName(mac) {
   return p ? p.name : "";
 }
 
-// Four rows, built once per language: the place, a choice of sensor, its name.
+// A row a place (four, or six on a firmware with a third channel), built once
+// per language: the place, a choice of sensor, its name.
 function renderPlaces(th) {
   const box = $("slots-list");
-  if (box.dataset.lang !== lang) {
-    box.dataset.lang = lang;
-    box.replaceChildren(...[1, 2, 3, 4].map((n) => {
+  const count = status.slots.length;
+  if (box.dataset.lang !== lang + count) {
+    box.dataset.lang = lang + count;
+    box.replaceChildren(...status.slots.map((_, i) => i + 1).map((n) => {
       const row = document.createElement("div");
       row.className = "place-row";
       row.innerHTML = '<span class="place-n"></span><select class="input"></select><input class="input" maxlength="20"><div class="sub"></div>';
@@ -3056,7 +3151,7 @@ function renderPlaces(th) {
       sel.setAttribute("aria-label", t("slot_aria", n));
       sel.addEventListener("change", () => {
         const next = (advPlaces || placeMacs()).slice();
-        for (let i = 0; i < 4; i++) if (sel.value && next[i] === sel.value) next[i] = "";  // one place a sensor
+        for (let i = 0; i < next.length; i++) if (sel.value && next[i] === sel.value) next[i] = "";  // one place a sensor
         next[n - 1] = sel.value;
         advPlaces = next;
         renderAdvanced(false);
@@ -3147,7 +3242,7 @@ function stepStale(by) {
 
 const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
 
-holdRepeat($("hyst-down"), () => { advHyst = Math.max(H_MIN, roundTenth(advHyst - 0.1)); renderAdvanced(false); });
+holdRepeat($("hyst-down"), () => { advHyst = Math.max(bandMin(), roundTenth(advHyst - 0.1)); renderAdvanced(false); });
 holdRepeat($("hyst-up"), () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
 $("hyst-default").addEventListener("click", () => { advSplit = false; advHyst = H_DEFAULT; renderAdvanced(false); });
 
@@ -3156,7 +3251,7 @@ $("hyst-default").addEventListener("click", () => { advSplit = false; advHyst = 
 const B_STEP = 0.1;
 const B_MAX = 3;
 const roundBand = (v) => Math.round(v * 20) / 20;
-const canBand = (lo, hi) => lo > -1e-6 && hi > -1e-6 && lo < B_MAX + 1e-6 && hi < B_MAX + 1e-6 && lo + hi > H_MIN - 1e-6;
+const canBand = (lo, hi) => lo > -1e-6 && hi > -1e-6 && lo < B_MAX + 1e-6 && hi < B_MAX + 1e-6 && lo + hi > bandMin() - 1e-6;
 function bandEdited(th) {
   if (th.below == null) return !sameNum(advHyst, th.hysteresis);
   if (advSplit !== !!th.split) return true;
@@ -3167,7 +3262,7 @@ onSeg("seg-band", (v) => {
     advBelow = roundBand(advHyst / 2);  // apart from the equal halves
     advAbove = roundBand(advHyst / 2);
   } else if (v === "equal" && advSplit) {
-    advHyst = Math.min(H_MAX, Math.max(H_MIN, roundTenth(advBelow + advAbove)));  // the same band, split equally
+    advHyst = Math.min(H_MAX, Math.max(bandMin(), roundTenth(advBelow + advAbove)));  // the same band, split equally
   }
   advSplit = v === "split";
   renderAdvanced(false);
@@ -3345,7 +3440,8 @@ async function fetchCloudHistory(c) {
 }
 
 // Two channels: the boiler and the target in channel 1, Sensör n in fields
-// 2n-1 (°C) and 2n (%) of channel 2, at the same minutes. A minute's two
+// 2n-1 (°C) and 2n (%) of channel 2 (n = 1-4), or Sensör 5-6 in fields 1-4 of
+// channel 3, at the same minutes. A minute's two
 // records are paired when close, not only at the same second: firmware
 // 603e05ad could stamp a minute a second apart on the two channels (channel 2
 // sent it later). Stray entries (the API page's test link) lack channel 1's
@@ -3371,13 +3467,15 @@ async function fetchCloudHistory2(c, slot) {
     return r.json();
   };
   const b1 = c.channel ? base(c.channel, c.read_key) : null;
-  const b2 = base(c.channel2, c.read_key2);
+  const third = slot > 4;  // Sensör 5-6: channel 3
+  const b2 = third ? base(c.channel3, c.read_key3) : base(c.channel2, c.read_key2);
   const [one, two] = await Promise.all([
     b1 ? Promise.all(spans.map((sp) => get(b1 + sp[0]))) : Promise.resolve([]),
     Promise.all(spans.map((sp) => get(b2 + sp[1]))),
   ]);
-  const ft = "field" + (2 * slot - 1);
-  const fh = "field" + 2 * slot;
+  const n = third ? slot - 4 : slot;  // its place in the channel
+  const ft = "field" + (2 * n - 1);
+  const fh = "field" + 2 * n;
   // ThingSpeak drops values for fields the channel hasn't turned on.
   if (!(two[0] && two[0].channel && two[0].channel[ft])) throw new Error("slotfield");
   const num = (v) => (v == null || v === "" || isNaN(v) ? null : Number(v));
@@ -3418,16 +3516,17 @@ async function fetchCloudHistory2(c, slot) {
 }
 
 const cloudOn = () => !!(status && status.cloud && status.cloud.enabled &&
-  (status.cloud.channel || status.cloud.channel2));
+  (status.cloud.channel || status.cloud.channel2 || status.cloud.channel3));
 // Where the chart of a sensor comes from in the cloud: its place's fields of
-// channel 2 (firmware with two channels), or channel 1 for the control sensor
-// (firmware with one); null when the cloud does not have it.
+// channel 2 (Sensör 1-4) or 3 (Sensör 5-6) on firmware with sensor channels,
+// or channel 1 for the control sensor (firmware with one); null when the
+// cloud does not have it.
 function cloudSource(mac) {
   const c = status && status.cloud;
   if (!c || !c.enabled) return null;
   if (c.channel2 !== undefined) {
     const slot = (status.slots || []).findIndex((x) => x && x.mac === mac) + 1;
-    return slot && c.channel2 ? { c, slot } : null;
+    return slot && (slot > 4 ? c.channel3 : c.channel2) ? { c, slot } : null;
   }
   const ctl = status.thermostat && status.thermostat.sensor;
   return c.channel && (!ctl || mac === ctl) ? { c, slot: 0 } : null;
@@ -3843,11 +3942,69 @@ function renderWifi() {
   $("wifi-ssid-v").textContent = w.ssid || "—";
   $("wifi-ip-v").textContent = w.connected ? w.ip : "—";
   $("wifi-rssi-v").textContent = w.connected ? wifiQuality(w.rssi) + " (" + w.rssi + " " + t("dbm") + ")" : "—";
+  $("wifi-host-v").textContent = hostNow() + ".local";
   const needsSetup = !w.connected;
   $("wifi-cancel").hidden = needsSetup;
   if ((needsSetup || wifiFormOpen) && !wifiSaved) openWifiForm();
   $("wifi-change-row").hidden = !$("wifi-form").hidden;
+  renderHost();
 }
+
+/* ---------- the name on the home network ---------- */
+
+// The name chosen, and the one answered to now (another device may have had
+// it first); "thermcon" on a firmware that cannot change it.
+const hostName = () => (status && status.host ? status.host.name : "thermcon");
+const hostNow = () => (status && status.host ? status.host.now : "thermcon");
+const HOST_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
+let hostFilled = false;  // the field has shown the device's name: since then, a difference is the user's edit
+
+function renderHost() {
+  const h = status && status.host;
+  $("host-form").hidden = !h;
+  if (!h) return;
+  if (!hostFilled) {
+    $("host-name").value = h.name;
+    hostFilled = true;
+  }
+  $("host-actions").hidden = $("host-name").value === h.name;
+  $("host-note").replaceChildren(h.now !== h.name ? banner("warn", t("host_clash", h.name, h.now)) : "");
+}
+
+$("host-name").addEventListener("input", (e) => {
+  const v = e.target.value.toLowerCase().replace(/\s/g, "");  // as a name is written in an address
+  if (v !== e.target.value) e.target.value = v;
+  showMsg("host-msg");
+  renderHost();
+});
+$("host-discard").addEventListener("click", () => { hostFilled = false; renderHost(); showMsg("host-msg"); });
+$("host-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("host-name").value;
+  const old = hostName();
+  if (name === old) return;
+  if (!HOST_RE.test(name)) {
+    showMsg("host-msg", "crit", t("err_host"));
+    return;
+  }
+  if (!(await confirmDialog(t("sure"), t("conf_host", name), t("yes_apply")))) return;
+  $("host-save").disabled = true;
+  try {
+    status.host = await (await postJson("/api/host", { name })).json();
+    hostFilled = false;
+    renderWifi();
+    // Opened by the old name: that name is gone, so move to the new one.
+    if (location.hostname.toLowerCase() === old + ".local") {
+      showMsg("host-msg", "ok", t("host_moving", name));
+      setTimeout(() => { location.href = location.protocol + "//" + name + ".local" + location.pathname; }, 2500);
+    } else {
+      flash("host-msg", t("applied"));
+    }
+  } catch (err) {
+    showMsg("host-msg", "crit", errorText(err));
+  }
+  $("host-save").disabled = false;
+});
 
 function openWifiForm() {
   $("wifi-form").hidden = false;
@@ -3920,7 +4077,7 @@ $("wifi-form").addEventListener("submit", async (e) => {
   try {
     await postJson("/api/wifi", { ssid: ssid, pass: pass });
     wifiSaved = true;
-    showMsg("wifi-msg", "ok", t("wifi_saved", ssid));
+    showMsg("wifi-msg", "ok", t("wifi_saved", ssid, hostName()));
     $("wifi-pass").value = "";
   } catch (err) {
     showMsg("wifi-msg", "crit", errorText(err));
@@ -4035,8 +4192,10 @@ $("ap-form").addEventListener("submit", async (e) => {
 let cloudInfo = null;   // ThingSpeak settings and state from the device
 let cloudFilled = false;  // the form has shown the device's values: since then, a difference is the user's edit
 
-// A firmware with two channels (the thermostat's, the sensors') sends "channel2".
+// A firmware with two channels (the thermostat's, the sensors') sends "channel2",
+// one with a third (Sensör 5-6) "channel3".
 const twoChannels = () => !!(cloudInfo && cloudInfo.channel2 !== undefined);
+const threeChannels = () => !!(cloudInfo && cloudInfo.channel3 !== undefined);
 
 function cloudForm() {
   const v = (id) => $(id).value.trim();
@@ -4044,16 +4203,19 @@ function cloudForm() {
     enabled: $("cloud-on").checked,
     channel: v("cloud-channel"), write_key: v("cloud-wkey").toUpperCase(), read_key: v("cloud-rkey").toUpperCase(),
     channel2: v("cloud-channel2"), write_key2: v("cloud-wkey2").toUpperCase(), read_key2: v("cloud-rkey2").toUpperCase(),
+    channel3: v("cloud-channel3"), write_key3: v("cloud-wkey3").toUpperCase(), read_key3: v("cloud-rkey3").toUpperCase(),
   };
 }
 const chText = (n) => (n ? String(n) : "");
 const ch1Edited = (f, c) => f.channel !== chText(c.channel) || f.write_key !== c.write_key || f.read_key !== c.read_key;
 const ch2Edited = (f, c) => f.channel2 !== chText(c.channel2) || f.write_key2 !== c.write_key2 || f.read_key2 !== c.read_key2;
+const ch3Edited = (f, c) => f.channel3 !== chText(c.channel3) || f.write_key3 !== c.write_key3 || f.read_key3 !== c.read_key3;
 
 function cloudEdited() {
   if (!cloudFilled || cloudInfo == null) return false;
   const f = cloudForm();
-  return f.enabled !== cloudInfo.enabled || ch1Edited(f, cloudInfo) || (twoChannels() && ch2Edited(f, cloudInfo));
+  return f.enabled !== cloudInfo.enabled || ch1Edited(f, cloudInfo) || (twoChannels() && ch2Edited(f, cloudInfo)) ||
+    (threeChannels() && ch3Edited(f, cloudInfo));
 }
 function updateCloudActions() { $("cloud-actions").hidden = !cloudEdited(); }
 
@@ -4068,14 +4230,19 @@ function renderCloud() {
   else if (c.error || (two && chs.some((x) => x.error))) setBadge($("cloud-badge"), "crit", t("cloud_badge_err"));
   else if (c.ok_age_s != null) setBadge($("cloud-badge"), "ok", t("cloud_badge_ok"));
   else setBadge($("cloud-badge"), "warn", t("cloud_badge_wait"));
+  const three = threeChannels();
   $("cloud-ch1-title").hidden = !two;
   $("cloud-ch2").hidden = !two;
-  setText($("cloud-send-help"), two ? "cloud_send_help2" : "cloud_send_help");
+  $("cloud-ch3").hidden = !three;
+  setText($("cloud-ch2-title"), three ? "cloud_ch2_14" : "cloud_ch2");
+  setText($("cloud-send-help"), three ? "cloud_send_help3" : two ? "cloud_send_help2" : "cloud_send_help");
   setText($("cloud-last-label"), two ? "cloud_last1" : "cloud_last");
   const ago = (s) => (s != null ? t("cloud_ago", fmtAgo(s)) : "—");
   $("cloud-last-v").textContent = ago(two && chs[0] ? chs[0].ok_age_s : c.ok_age_s);
   $("cloud-last2-row").hidden = !two || !c.channel2;
   $("cloud-last2-v").textContent = two && chs[1] ? ago(chs[1].ok_age_s) : "—";
+  $("cloud-last3-row").hidden = !three || !c.channel3;
+  $("cloud-last3-v").textContent = three && chs[2] ? ago(chs[2].ok_age_s) : "—";
   const pending = two && c.enabled ? Math.max(0, ...chs.map((x) => x.pending || 0)) : 0;
   $("cloud-pending-row").hidden = !pending;
   $("cloud-pending-v").textContent = t("cloud_pending_v", pending);
@@ -4085,6 +4252,8 @@ function renderCloud() {
   $("cloud-link").hidden = !c.channel;
   $("cloud-link2").href = "https://thingspeak.mathworks.com/channels/" + c.channel2;
   $("cloud-link2-row").hidden = !two || !c.channel2;
+  $("cloud-link3").href = "https://thingspeak.mathworks.com/channels/" + c.channel3;
+  $("cloud-link3-row").hidden = !three || !c.channel3;
   const errors = [];
   if (c.enabled && two) {
     chs.forEach((x, i) => {
@@ -4096,7 +4265,7 @@ function renderCloud() {
   $("cloud-error").replaceChildren(...errors);
 }
 
-let cloudCheck = null;    // what ThingSpeak says about the channels: {ch1, ch2}, each {fields: Set} or {error}
+let cloudCheck = null;    // what ThingSpeak says about the channels: {ch1, ch2, ch3}, each {fields: Set} or {error}
 let cloudChecked = null;  // the channels, read keys and places it was asked about
 
 // ThingSpeak keeps values only in the fields a channel has turned on and drops
@@ -4118,17 +4287,20 @@ async function askChannel(channel, readKey) {
 async function checkChannel(force) {
   const c = cloudInfo;
   const two = twoChannels();
+  const three = threeChannels();
   const places = JSON.stringify(status && status.slots ? placeMacs() : []);
-  const key = c && c.enabled ? [c.channel, c.read_key, two ? c.channel2 : "", two ? c.read_key2 : "", places].join(":") : "";
+  const key = c && c.enabled ? [c.channel, c.read_key, two ? c.channel2 : "", two ? c.read_key2 : "",
+    three ? c.channel3 : "", three ? c.read_key3 : "", places].join(":") : "";
   if (!force && key === cloudChecked) return;
   cloudChecked = key;
   cloudCheck = null;
   renderCloudCheck();
   if (!key) return;
-  const [ch1, ch2] = await Promise.all([c.channel ? askChannel(c.channel, c.read_key) : null,
-    two && c.channel2 ? askChannel(c.channel2, c.read_key2) : null]);
+  const [ch1, ch2, ch3] = await Promise.all([c.channel ? askChannel(c.channel, c.read_key) : null,
+    two && c.channel2 ? askChannel(c.channel2, c.read_key2) : null,
+    three && c.channel3 ? askChannel(c.channel3, c.read_key3) : null]);
   if (key !== cloudChecked) return;  // the settings changed meanwhile
-  cloudCheck = { ch1, ch2 };
+  cloudCheck = { ch1, ch2, ch3 };
   renderCloudCheck();
 }
 
@@ -4150,15 +4322,24 @@ function renderCloudCheck() {
       notes.push(note);
     }
   }
-  if (c && c.ch2 && c.ch2.error) {
-    notes.push(banner("crit", pre(2) + t("cloud_chk_" + c.ch2.error)));
-  } else if (c && c.ch2) {
-    const need = [];
-    placeMacs().forEach((m, i) => { if (m) need.push(2 * i + 1, 2 * i + 2); });
-    const missing = need.filter((n) => !c.ch2.fields.has(n));
-    if (missing.length) {
-      notes.push(banner("warn", pre(2) + t("cloud_chk_missing", missing.map((n) => t("cloud_field_s", n)).join(", "), missing.length)));
+  // A sensor channel needs the two fields of every place it has with a sensor
+  // in it: Sensör 1-4 in channel 2, Sensör 5-6 in channel 3.
+  const sensorChannel = (ch, n, first) => {
+    if (ch && ch.error) {
+      notes.push(banner("crit", pre(n) + t("cloud_chk_" + ch.error)));
+    } else if (ch) {
+      const need = [];
+      placeMacs().forEach((m, i) => { if (m && i >= first && i < first + 4) need.push(2 * (i - first) + 1, 2 * (i - first) + 2); });
+      const missing = need.filter((f) => !ch.fields.has(f));
+      if (missing.length) {
+        notes.push(banner("warn", pre(n) + t("cloud_chk_missing", missing.map((f) => t("cloud_field_s", f, first)).join(", "),
+          missing.length)));
+      }
     }
+  };
+  if (c) {
+    sensorChannel(c.ch2, 2, 0);
+    sensorChannel(c.ch3, 3, 4);
   }
   $("cloud-check").replaceChildren(...notes);
 }
@@ -4172,6 +4353,9 @@ function fillCloudForm() {
   $("cloud-channel2").value = chText(c.channel2);
   $("cloud-wkey2").value = c.write_key2 || "";
   $("cloud-rkey2").value = c.read_key2 || "";
+  $("cloud-channel3").value = chText(c.channel3);
+  $("cloud-wkey3").value = c.write_key3 || "";
+  $("cloud-rkey3").value = c.read_key3 || "";
   cloudFilled = true;
   updateCloudActions();
 }
@@ -4196,25 +4380,27 @@ $("cloud-discard").addEventListener("click", () => { fillCloudForm(); showMsg("c
 $("cloud-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const two = twoChannels();
+  const three = threeChannels();
   const f = cloudForm();
   const keyOk = (k) => k === "" || /^[A-Z0-9]{16}$/.test(k);
   const chOk = (ch) => /^\d{0,10}$/.test(ch) && Number(ch) <= 4294967295;
-  if (!chOk(f.channel) || (two && !chOk(f.channel2))) {
+  if (!chOk(f.channel) || (two && !chOk(f.channel2)) || (three && !chOk(f.channel3))) {
     showMsg("cloud-msg", "crit", t("err_channel"));
     return;
   }
-  if (!keyOk(f.write_key) || !keyOk(f.read_key) || (two && (!keyOk(f.write_key2) || !keyOk(f.read_key2)))) {
+  if (!keyOk(f.write_key) || !keyOk(f.read_key) || (two && (!keyOk(f.write_key2) || !keyOk(f.read_key2))) ||
+      (three && (!keyOk(f.write_key3) || !keyOk(f.read_key3)))) {
     showMsg("cloud-msg", "crit", t("err_key"));
     return;
   }
   if (two) {
     // Each channel is set up (a number and a write key) or left empty; on needs one set up.
     const pairOk = (ch, w) => !!Number(ch) === (w !== "");
-    if (!pairOk(f.channel, f.write_key) || !pairOk(f.channel2, f.write_key2)) {
+    if (!pairOk(f.channel, f.write_key) || !pairOk(f.channel2, f.write_key2) || (three && !pairOk(f.channel3, f.write_key3))) {
       showMsg("cloud-msg", "crit", t("err_ch_pair"));
       return;
     }
-    if (f.enabled && !Number(f.channel) && !Number(f.channel2)) {
+    if (f.enabled && !Number(f.channel) && !Number(f.channel2) && !(three && Number(f.channel3))) {
       showMsg("cloud-msg", "crit", t("err_channel"));
       return;
     }
@@ -4229,11 +4415,13 @@ $("cloud-form").addEventListener("submit", async (e) => {
   if (f.enabled !== cloudInfo.enabled) changes.push(t(f.enabled ? "ch_cloud_on" : "ch_cloud_off"));
   if (ch1Edited(f, cloudInfo)) changes.push(t("ch_cloud_cfg"));
   if (two && ch2Edited(f, cloudInfo)) changes.push(t("ch_cloud_cfg2"));
+  if (three && ch3Edited(f, cloudInfo)) changes.push(t("ch_cloud_cfg3"));
   if (!(await confirmDialog(t("sure"), changes.join(" "), t("yes_apply")))) return;
   $("cloud-save").disabled = true;
   try {
     const body = { enabled: f.enabled, channel: Number(f.channel) || 0, write_key: f.write_key, read_key: f.read_key };
     if (two) Object.assign(body, { channel2: Number(f.channel2) || 0, write_key2: f.write_key2, read_key2: f.read_key2 });
+    if (three) Object.assign(body, { channel3: Number(f.channel3) || 0, write_key3: f.write_key3, read_key3: f.read_key3 });
     const r = await postJson("/api/cloud", body);
     cloudInfo = await r.json();
     fillCloudForm();
@@ -4426,6 +4614,14 @@ async function loadFirmware() {
     /* the card shows what it has */
   }
   renderFirmware();
+}
+
+// Memory, on a firmware that tells it ("heap"): free now and the least ever
+// free since the device started, in KB.
+function renderHeap() {
+  const h = status && status.heap;
+  $("fw-heap-row").hidden = !h;
+  if (h) $("fw-heap").textContent = t("heap_v", Math.round(h.free / 1024), Math.round(h.min / 1024));
 }
 
 function renderFirmware() {
@@ -4949,16 +5145,26 @@ async function loadPush() {
   renderPush();
 }
 
+// The long run: 15 min to 12 h in 15 min steps, on a firmware that lets it
+// change (it sends "long_run_min"); a fixed 2 h before.
+const LR_MIN = 15;
+const LR_MAX = 720;
+const LR_STEP = 15;
+const longRunSet = () => !!(pushInfo && pushInfo.long_run_min != null);
+
 function fillPushForm() {
   pushEdit = { enabled: pushInfo.enabled, events: Object.assign({}, pushInfo.events),
                room_low: pushInfo.room_low, room_high: pushInfo.room_high };
+  if (longRunSet()) pushEdit.long_run_min = pushInfo.long_run_min;
 }
 function pushEdited() {
   return !!(pushInfo && pushEdit) && (pushEdit.enabled !== pushInfo.enabled || !sameNum(pushEdit.room_low, pushInfo.room_low) ||
-    !sameNum(pushEdit.room_high, pushInfo.room_high) || EVENTS.some((e) => pushEdit.events[e] !== pushInfo.events[e]));
+    !sameNum(pushEdit.room_high, pushInfo.room_high) || EVENTS.some((e) => pushEdit.events[e] !== pushInfo.events[e]) ||
+    (longRunSet() && pushEdit.long_run_min !== pushInfo.long_run_min));
 }
 
-function limitStepper(id, label) {
+// A row with a label and a −/+ stepper; ids id-down, id-up and id-value.
+function stepperRow(id, label, downAria, upAria, step) {
   const row = document.createElement("div");
   row.className = "band-row";
   row.innerHTML = '<span class="label"></span><div class="stepper"><button class="round-btn small" type="button">' +
@@ -4969,20 +5175,31 @@ function limitStepper(id, label) {
   down.id = id + "-down";
   up.id = id + "-up";
   row.querySelector(".stepper-value").id = id + "-value";
-  down.setAttribute("aria-label", label + " −0,5 °C");
-  up.setAttribute("aria-label", label + " +0,5 °C");
+  down.setAttribute("aria-label", downAria);
+  up.setAttribute("aria-label", upAria);
+  holdRepeat(down, () => step(-1));
+  holdRepeat(up, () => step(1));
+  return row;
+}
+
+// The room limits in 0.1 °C steps, at least 1 °C apart.
+function limitStepper(id, label) {
   const key = id === "low" ? "room_low" : "room_high";
-  const step = (by) => {
-    const next = toStep(pushEdit[key] + by, 0.5);
+  return stepperRow(id, label, label + " −0,1 °C", label + " +0,1 °C", (dir) => {
+    const next = toStep(pushEdit[key] + dir * 0.1, 0.1);
     const lo = key === "room_low" ? next : pushEdit.room_low;
     const hi = key === "room_high" ? next : pushEdit.room_high;
     if (lo < 5 || hi > 35 || lo > 30 || hi - lo < 1 - 1e-6) return;
     pushEdit[key] = next;
     renderPush();
-  };
-  holdRepeat(down, () => step(-0.5));
-  holdRepeat(up, () => step(0.5));
-  return row;
+  });
+}
+
+function longRunStepper() {
+  return stepperRow("long-run", t("long_run_after"), t("long_run_down"), t("long_run_up"), (dir) => {
+    pushEdit.long_run_min = Math.min(LR_MAX, Math.max(LR_MIN, pushEdit.long_run_min + dir * LR_STEP));
+    renderPush();
+  });
 }
 
 function eventRow(ev) {
@@ -4992,7 +5209,7 @@ function eventRow(ev) {
   const label = document.createElement("label");
   label.className = "label";
   label.htmlFor = "ev-" + ev;
-  label.textContent = t("ev_" + ev);
+  label.textContent = t(ev === "long_run" && longRunSet() ? "ev_long_run_set" : "ev_" + ev);
   const sw = document.createElement("input");
   sw.type = "checkbox";
   sw.className = "switch";
@@ -5006,6 +5223,13 @@ function eventRow(ev) {
     limits.className = "room-limits";
     limits.append(limitStepper("low", t("room_low")), limitStepper("high", t("room_high")));
     wrap.append(limits);
+  }
+  if (ev === "long_run" && longRunSet()) {
+    const box = document.createElement("div");
+    box.id = "long-run-box";
+    box.className = "room-limits";
+    box.append(longRunStepper());
+    wrap.append(box);
   }
   return wrap;
 }
@@ -5027,8 +5251,8 @@ function renderPush() {
 
   $("notify-on").checked = pushEdit.enabled;
   const box = $("events");
-  if (box.dataset.key !== lang) {
-    box.dataset.key = lang;
+  if (box.dataset.key !== lang + longRunSet()) {
+    box.dataset.key = lang + longRunSet();
     box.replaceChildren(...EVENTS.map(eventRow));
   }
   for (const ev of EVENTS) {
@@ -5040,6 +5264,12 @@ function renderPush() {
   $("high-value").textContent = fmtC(pushEdit.room_high);
   $("low-down").disabled = pushEdit.room_low <= 5;
   $("high-up").disabled = pushEdit.room_high >= 35;
+  if (longRunSet()) {
+    $("long-run-box").hidden = !pushEdit.events.long_run || !pushEdit.enabled;
+    $("long-run-value").textContent = t("minutes", pushEdit.long_run_min);
+    $("long-run-down").disabled = pushEdit.long_run_min <= LR_MIN;
+    $("long-run-up").disabled = pushEdit.long_run_min >= LR_MAX;
+  }
   $("notify-actions").hidden = !pushEdited();
 
   const list = $("phones");
