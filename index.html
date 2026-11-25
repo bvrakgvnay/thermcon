@@ -242,8 +242,7 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .duration .stepper { gap: 8px; }
 .duration .stepper-value { min-width: 44px; }
 .duration-unit { margin-top: 2px; font-size: 12.5px; color: var(--muted); text-align: center; }
-/* The hysteresis apart: a row each for the start and the stop limit. */
-.band-mode { margin-bottom: 12px; }
+/* The hysteresis: a row each for the start and the stop limit. */
 .band-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .band-row + .band-row { margin-top: 10px; }
 .band-row .label { margin: 0; }
@@ -266,6 +265,13 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .temp-step { display: flex; align-items: center; gap: 2px; margin-left: auto; }
 .temp-value { min-width: 64px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
 .slot .icon-btn { width: 36px; height: 36px; }
+/* A slot's own start and stop limits, under its time and target. */
+.slot.has-band { flex-wrap: wrap; row-gap: 4px; }
+.slot-band { flex-basis: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.slot-band .lim { display: flex; align-items: center; gap: 2px; }
+.slot-band .lim-name { margin-right: 4px; }
+.slot-band .icon-btn { width: 30px; height: 30px; }
+.slot-band .lim-value { min-width: 34px; text-align: center; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .slot-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--muted); }
 .link-btn { padding: 0; font-size: 13px; font-weight: 600; color: var(--accent); background: none; border: 0; }
@@ -560,18 +566,9 @@ th:first-child, td:first-child { text-align: left; }
         <div class="field">
           <div class="label-row">
             <div class="label" id="hyst-label" data-t="hysteresis">Histeresiz</div>
-            <button id="hyst-default" class="link-btn" type="button" data-t="hyst_default" hidden>Varsayılana dön (1,0 °C)</button>
+            <button id="hyst-default" class="link-btn" type="button" data-t="hyst_default" hidden>Varsayılana dön (0,5 / 0,5 °C)</button>
           </div>
-          <div id="seg-band" class="segmented block band-mode" role="group" aria-labelledby="hyst-label" hidden>
-            <button type="button" data-value="equal" data-t="band_equal">Eşit</button>
-            <button type="button" data-value="split" data-t="band_split">Ayrı</button>
-          </div>
-          <div id="hyst-equal" class="stepper" role="group" aria-labelledby="hyst-label">
-            <button id="hyst-down" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C azalt" data-t-aria="hyst_down"><svg class="icon"><use href="#i-minus"/></svg></button>
-            <span id="hyst-value" class="stepper-value" aria-live="polite">—</span>
-            <button id="hyst-up" class="round-btn small" type="button" aria-label="Histeresizi 0,1 °C artır" data-t-aria="hyst_up"><svg class="icon"><use href="#i-plus"/></svg></button>
-          </div>
-          <div id="hyst-split" hidden>
+          <div id="hyst-split" role="group" aria-labelledby="hyst-label">
             <div class="band-row">
               <span class="label" id="below-label" data-t="band_below">Başlama: hedefin altında</span>
               <div class="stepper" role="group" aria-labelledby="below-label">
@@ -1089,9 +1086,8 @@ const STALE_S = 180;
 const OTHER = "\u0000other";
 const T_MIN = 5;          // targets, °C, in steps of tStep()
 const T_MAX = 30;
-const H_MIN = 0.2;        // hysteresis, °C, in 0.1 °C steps (the narrowest on firmware without "band_min")
-const H_MAX = 3;
-const H_DEFAULT = 1;
+const H_MIN = 0.2;        // start + stop, °C: the least on firmware without "band_min"
+const H_DEFAULT = 1;      // start + stop by default: 0.5 each
 const D_MIN = 0;          // relay dwell, seconds
 const D_MAX = 600;
 const D_DEFAULT = 180;
@@ -1170,11 +1166,10 @@ const L = {
     th_time: "Zaman", th_temp: "Sıcaklık (°C)", th_hum: "Nem (%)", th_target: "Hedef (°C)",
     adv_title: "Gelişmiş sıcaklık ayarları",
     hysteresis: "Histeresiz",
-    hyst_default: "Varsayılana dön (1,0 °C)",
-    hyst_down: "Histeresizi 0,1 °C azalt", hyst_up: "Histeresizi 0,1 °C artır",
-    band_equal: "Eşit", band_split: "Ayrı",
+    hyst_default: "Varsayılana dön (0,5 / 0,5 °C)",
     band_below: "Başlama: hedefin altında", band_above: "Durma: hedefin üstünde",
     band_down: "0,1 °C azalt", band_up: "0,1 °C artır",
+    slot_below: "Başlama", slot_above: "Durma",
     dwell: "Röle koruması",
     dwell_default: "Varsayılana dön (3 dk)",
     dwell_min_down: "Bir dakika kısalt", dwell_min_up: "Bir dakika uzat",
@@ -1427,15 +1422,14 @@ const L = {
     prog_fail: "Program uygulanamadı; saatleri ve sıcaklıkları kontrol et.",
     hyst_help: (target, low, high) => "Hedef " + target + " iken kombi " + low + NBSP + "°C'de çalışmaya başlar, " + high + NBSP +
       "°C'de durur. Küçük değer sıcaklığı daha sabit tutar ama kombiyi daha sık açıp kapatır.",
+    hyst_help_prog: "Program modunda her saatin kendi başlama ve durma değeri geçerlidir (Program sekmesi); buradakiler Manuel modda ve donma korumasında geçerlidir.",
     not_found: "Henüz bulunamadı",
     relay_default: "Varsayılana dön (NC)",
     relay_help: (nc) => nc
       ? "NC (normalde kapalı): kombi rölenin COM ve NC uçlarına bağlı, TH1-TH2 köprüsünün yerine. Isıtırken röle bırakılır, beklemede çeker. Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; kombi kendi ön panel ayarıyla çalışır."
       : "NO (normalde açık): kombi rölenin COM ve NO uçlarına bağlı. Isıtırken röle çeker, beklemede bırakılır. Thermcon kapalıyken, yeniden başlarken ya da sensörden ölçüm alamadığında röle bırakılır; kombi ısıtmaz.",
     conf_relay: (c) => "Röle bağlantısı " + c + " olacak; kombi rölenin COM ve " + c + " uçlarına bağlı olmalı.",
-    conf_hyst: (a, b) => "Histeresiz " + a + " yerine " + b + " olacak.",
     conf_band: (lo, hi) => "Isıtma hedefin " + lo + " altında başlayıp " + hi + " üstünde duracak.",
-    conf_equal: (h, half) => "Histeresiz " + h + " olacak ve eşit bölünecek: hedefin " + half + " altı ve üstü.",
     conf_dwell: (a, b) => "Röle koruması " + a + " yerine " + b + " olacak.",
     conf_sensor: (mac) => "Termostat " + mac + " sensörüne göre çalışacak.",
     conf_now: " Değişiklik hemen uygulanır.",
@@ -1609,11 +1603,10 @@ const L = {
     th_time: "Время", th_temp: "Температура (°C)", th_hum: "Влажность (%)", th_target: "Цель (°C)",
     adv_title: "Дополнительные настройки температуры",
     hysteresis: "Гистерезис",
-    hyst_default: "По умолчанию (1,0 °C)",
-    hyst_down: "Уменьшить гистерезис на 0,1 °C", hyst_up: "Увеличить гистерезис на 0,1 °C",
-    band_equal: "Поровну", band_split: "Раздельно",
+    hyst_default: "По умолчанию (0,5 / 0,5 °C)",
     band_below: "Включение: ниже цели на", band_above: "Выключение: выше цели на",
     band_down: "Уменьшить на 0,1 °C", band_up: "Увеличить на 0,1 °C",
+    slot_below: "Вкл.", slot_above: "Выкл.",
     dwell: "Защита реле",
     dwell_default: "По умолчанию (3 мин)",
     dwell_min_down: "Уменьшить на минуту", dwell_min_up: "Увеличить на минуту",
@@ -1866,15 +1859,14 @@ const L = {
     prog_fail: "Не удалось применить расписание; проверьте время и температуры.",
     hyst_help: (target, low, high) => "При цели " + target + " котёл включается при " + low + NBSP + "°C и выключается при " + high + NBSP +
       "°C. Меньшее значение точнее держит температуру, но чаще включает котёл.",
+    hyst_help_prog: "В режиме расписания действуют значения включения и выключения каждого времени (вкладка «Расписание»); эти — в ручном режиме и для защиты от замерзания.",
     not_found: "Пока не найден",
     relay_default: "По умолчанию (NC)",
     relay_help: (nc) => nc
       ? "NC (нормально замкнутый): котёл подключён к контактам COM и NC реле вместо перемычки TH1-TH2. При нагреве реле отпущено, в ожидании включено. Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается, и котёл работает по настройке на своей передней панели."
       : "NO (нормально разомкнутый): котёл подключён к контактам COM и NO реле. При нагреве реле включено, в ожидании отпущено. Когда Thermcon выключен, перезагружается или не получает данные датчика, реле отпускается, и котёл не греет.",
     conf_relay: (c) => "Подключение реле станет " + c + "; котёл должен быть подключён к контактам COM и " + c + " реле.",
-    conf_hyst: (a, b) => "Гистерезис изменится с " + a + " на " + b + ".",
     conf_band: (lo, hi) => "Нагрев будет включаться на " + lo + " ниже цели и выключаться на " + hi + " выше.",
-    conf_equal: (h, half) => "Гистерезис станет " + h + " и разделится поровну: на " + half + " ниже и выше цели.",
     conf_dwell: (a, b) => "Защита реле изменится с " + a + " на " + b + ".",
     conf_sensor: (mac) => "Термостат будет работать по датчику " + mac + ".",
     conf_now: " Изменение вступит в силу сразу.",
@@ -2068,13 +2060,11 @@ let ctlMode = null;     // mode chosen on Kontrol but not applied yet
 let ctlTarget = null;   // target chosen with − / + but not applied yet
 let timeSent = false;
 let thSub = "control";
-let sched = null;       // the week as saved on the device: 7 days of [minute, °C]
+let sched = null;       // the week as saved on the device: 7 days of [minute, °C, start, stop] ([minute, °C] before 2026-11-25)
 let schedEdit = null;   // the week being edited
 let schedDay = -1;
-let advHyst = null;     // hysteresis being edited
-let advSplit = false;   // start and stop limits set apart
-let advBelow = 0.5;     // apart: heating starts this far below the target
-let advAbove = 0.5;     // ... and stops this far above it
+let advBelow = null;    // being edited: heating starts this far below the target (null: not yet filled)
+let advAbove = null;    // ... and stops this far above it
 let advSensor = "";     // control sensor being edited
 let advRelay = null;    // relay contact being edited: "nc" or "no"
 let advDwell = null;    // relay dwell being edited
@@ -2965,6 +2955,47 @@ function renderSlots() {
     const del = iconButton("trash", t("del_time"), () => { day.splice(i, 1); renderProgram(); });
     del.disabled = day.length <= 1;
     row.append(time, step, del);
+    // The slot's own start (slot[2], below the target) and stop (slot[3], above
+    // it), on a firmware that keeps them: its slots come with four numbers.
+    if (slot.length === 4) {
+      row.classList.add("has-band");
+      const band = document.createElement("div");
+      band.className = "slot-band";
+      const limit = (k, name) => {
+        const box = document.createElement("span");
+        box.className = "lim";
+        const label = document.createElement("span");
+        label.className = "lim-name";
+        label.textContent = t(name);
+        const val = document.createElement("span");
+        val.className = "lim-value";
+        const by = (dir) => {
+          const next = roundBand(slot[k] + dir * B_STEP);
+          if (k === 2 ? !canBand(next, slot[3]) : !canBand(slot[2], next)) return;
+          slot[k] = next;
+          paintBand();
+          $("prog-confirm").hidden = !programEdited();
+        };
+        const down = iconButton("minus", t(name) + " " + t("band_down"), () => by(-1));
+        const up = iconButton("plus", t(name) + " " + t("band_up"), () => by(1));
+        box.append(label, down, val, up);
+        return { box, val, down, up };
+      };
+      const lo = limit(2, "slot_below");
+      const hi = limit(3, "slot_above");
+      // Updated in place, as the target is.
+      const paintBand = () => {
+        lo.val.textContent = nf12.format(slot[2]);
+        hi.val.textContent = nf12.format(slot[3]);
+        lo.down.disabled = !canBand(roundBand(slot[2] - B_STEP), slot[3]);
+        lo.up.disabled = !canBand(roundBand(slot[2] + B_STEP), slot[3]);
+        hi.down.disabled = !canBand(slot[2], roundBand(slot[3] - B_STEP));
+        hi.up.disabled = !canBand(slot[2], roundBand(slot[3] + B_STEP));
+      };
+      paintBand();
+      band.append(lo.box, hi.box);
+      row.append(band);
+    }
     return row;
   });
   $("slots").replaceChildren(...rows);
@@ -2981,7 +3012,7 @@ $("slot-add").addEventListener("click", () => {
   // An hour after the last period, or the nearest free half hour before that.
   let minute = Math.min(last[0] + 60, 23 * 60 + 30);
   while (minute > 0 && day.some((s) => s[0] === minute)) minute -= 30;
-  day.push([minute, last[1]]);
+  day.push([minute, ...last.slice(1)]);  // its target, and its start and stop limits where kept
   day.sort((a, b) => a[0] - b[0]);
   renderProgram();
 });
@@ -3026,19 +3057,15 @@ $("prog-apply").addEventListener("click", async () => {
 
 /* ---------- thermostat: Gelişmiş ---------- */
 
-const roundTenth = (v) => Math.round(v * 10) / 10;
-// The narrowest band (Eşit) and the least start + stop (Ayrı) the device takes:
-// 0.1 °C since it says so, 0.2 before.
+// The least start + stop the device takes: 0.1 °C since it says so, 0.2 before.
 const bandMin = () => (status && status.thermostat && status.thermostat.band_min != null ? status.thermostat.band_min : H_MIN);
 
 function renderAdvanced(reset) {
   const th = status && status.thermostat;
   if (!th) return;
-  if (reset || advHyst == null) {
-    advHyst = th.hysteresis;
-    advSplit = !!th.split;
-    advBelow = th.below != null ? th.below : th.hysteresis / 2;
-    advAbove = th.above != null ? th.above : th.hysteresis / 2;
+  if (reset || advBelow == null) {
+    advBelow = th.below;
+    advAbove = th.above;
     advSensor = th.sensor;
     advRelay = th.relay;
     advDwell = th.dwell_s;
@@ -3056,26 +3083,19 @@ function renderAdvanced(reset) {
   const dwellHelp = $("dwell-help");
   dwellHelp.dataset.t = advDwell ? "dwell_help" : "dwell_help_off";
   dwellHelp.textContent = t(dwellHelp.dataset.t);
-  // Apart only on a device version that takes it (it sends "below").
-  const apart = th.below != null && advSplit;
-  $("seg-band").hidden = th.below == null;
-  setSeg("seg-band", apart ? "split" : "equal");
-  $("hyst-equal").hidden = apart;
-  $("hyst-split").hidden = !apart;
-  $("hyst-value").textContent = fmtC(advHyst);
-  $("hyst-down").disabled = advHyst <= bandMin() + 1e-6;
-  $("hyst-up").disabled = advHyst >= H_MAX - 1e-6;
+  // The start and stop limits: the only hysteresis there is (every version this
+  // page meets sends them).
   $("below-value").textContent = fmtC(advBelow);
   $("above-value").textContent = fmtC(advAbove);
   $("below-down").disabled = !canBand(advBelow - B_STEP, advAbove);
   $("below-up").disabled = !canBand(advBelow + B_STEP, advAbove);
   $("above-down").disabled = !canBand(advBelow, advAbove - B_STEP);
   $("above-up").disabled = !canBand(advBelow, advAbove + B_STEP);
-  $("hyst-default").hidden = !apart && sameNum(advHyst, H_DEFAULT);
-  const example = th.mode !== "off" ? th.target : 21;
-  const lo = apart ? advBelow : advHyst / 2;
-  const hi = apart ? advAbove : advHyst / 2;
-  $("hyst-help").textContent = t("hyst_help", fmtC(example), nf12.format(example - lo), nf12.format(example + hi));
+  $("hyst-default").hidden = sameNum(advBelow, H_DEFAULT / 2) && sameNum(advAbove, H_DEFAULT / 2);
+  const example = th.mode !== "off" && th.target != null ? th.target : 21;
+  // Program mode has each slot's own limits on a firmware that keeps them (it sends "now_below").
+  $("hyst-help").textContent = t("hyst_help", fmtC(example), nf12.format(example - advBelow), nf12.format(example + advAbove)) +
+    (th.now_below !== undefined ? " " + t("hyst_help_prog") : "");
 
   const sensors = status.sensors;
   const many = sensors.length > 1;
@@ -3242,31 +3262,15 @@ function stepStale(by) {
 
 const fmtDwell = (s) => s ? t("wait", s) : t("dwell_none");
 
-holdRepeat($("hyst-down"), () => { advHyst = Math.max(bandMin(), roundTenth(advHyst - 0.1)); renderAdvanced(false); });
-holdRepeat($("hyst-up"), () => { advHyst = Math.min(H_MAX, roundTenth(advHyst + 0.1)); renderAdvanced(false); });
-$("hyst-default").addEventListener("click", () => { advSplit = false; advHyst = H_DEFAULT; renderAdvanced(false); });
+$("hyst-default").addEventListener("click", () => { advBelow = H_DEFAULT / 2; advAbove = H_DEFAULT / 2; renderAdvanced(false); });
 
-// The start and stop limits apart, in 0.1 °C steps; the device keeps 0.05 °C,
-// as half of an odd tenth (0.3 split equally is 0.15 each).
+// The start and stop limits, in 0.1 °C steps; the device keeps 0.05 °C (an old
+// single hysteresis of 0.3 became 0.15 each).
 const B_STEP = 0.1;
 const B_MAX = 3;
 const roundBand = (v) => Math.round(v * 20) / 20;
 const canBand = (lo, hi) => lo > -1e-6 && hi > -1e-6 && lo < B_MAX + 1e-6 && hi < B_MAX + 1e-6 && lo + hi > bandMin() - 1e-6;
-function bandEdited(th) {
-  if (th.below == null) return !sameNum(advHyst, th.hysteresis);
-  if (advSplit !== !!th.split) return true;
-  return advSplit ? !sameNum(advBelow, th.below) || !sameNum(advAbove, th.above) : !sameNum(advHyst, th.hysteresis);
-}
-onSeg("seg-band", (v) => {
-  if (v === "split" && !advSplit) {
-    advBelow = roundBand(advHyst / 2);  // apart from the equal halves
-    advAbove = roundBand(advHyst / 2);
-  } else if (v === "equal" && advSplit) {
-    advHyst = Math.min(H_MAX, Math.max(bandMin(), roundTenth(advBelow + advAbove)));  // the same band, split equally
-  }
-  advSplit = v === "split";
-  renderAdvanced(false);
-});
+const bandEdited = (th) => !sameNum(advBelow, th.below) || !sameNum(advAbove, th.above);
 holdRepeat($("below-down"), () => { advBelow = roundBand(advBelow - B_STEP); renderAdvanced(false); });
 holdRepeat($("below-up"), () => { advBelow = roundBand(advBelow + B_STEP); renderAdvanced(false); });
 holdRepeat($("above-down"), () => { advAbove = roundBand(advAbove - B_STEP); renderAdvanced(false); });
@@ -3294,15 +3298,9 @@ $("adv-form").addEventListener("submit", async (e) => {
   const body = {};
   const changes = [];
   if (bandEdited(th)) {
-    if (th.below != null && advSplit) {
-      body.below = advBelow;
-      body.above = advAbove;
-      changes.push(t("conf_band", fmtC(advBelow), fmtC(advAbove)));
-    } else {
-      body.hysteresis = advHyst;
-      changes.push(th.split ? t("conf_equal", fmtC(advHyst), fmtC(advHyst / 2))
-        : t("conf_hyst", fmtC(th.hysteresis), fmtC(advHyst)));
-    }
+    body.below = advBelow;
+    body.above = advAbove;
+    changes.push(t("conf_band", fmtC(advBelow), fmtC(advAbove)));
   }
   if (advDwell !== th.dwell_s) {
     body.dwell_s = advDwell;
