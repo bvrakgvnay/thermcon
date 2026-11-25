@@ -2256,7 +2256,7 @@ function showTab(name, how) {
   if (name === "wifi") renderWifi();
   if (name === "ap") loadAp();
   if (name === "cloud") { showMsg("cloud-msg"); loadCloud(); if (!$("cls-remote").hidden) loadRemote(); }
-  if (name === "general") { langEdit = null; renderLang(); showMsg("lang-msg"); loadFirmware(); }
+  if (name === "general") { langEdit = null; renderLang(); showMsg("lang-msg"); renderHeap(); loadFirmware(); }
   if (name === "notify") { pushEdit = null; showMsg("notify-msg"); loadPush(); }
   window.scrollTo(0, 0);
 }
