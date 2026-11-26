@@ -272,6 +272,9 @@ select.input { appearance: none; -webkit-appearance: none; padding-right: 38px; 
 .slot-band .lim-name { margin-right: 4px; }
 .slot-band .icon-btn { width: 30px; height: 30px; }
 .slot-band .lim-value { min-width: 34px; text-align: center; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Under them, what they mean: where heating starts and where it stops. */
+.slot-note { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--muted); }
+.slot-note b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
 .slot-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--muted); }
 .link-btn { padding: 0; font-size: 13px; font-weight: 600; color: var(--accent); background: none; border: 0; }
@@ -1170,6 +1173,8 @@ const L = {
     band_below: "Başlama: hedefin altında", band_above: "Durma: hedefin üstünde",
     band_down: "0,1 °C azalt", band_up: "0,1 °C artır",
     slot_below: "Başlama", slot_above: "Durma",
+    // text and values in turn (the values set off)
+    slot_note: (on, off) => ["Isıtma ", on, "'de başlar, ", off, "'de durur"],
     dwell: "Röle koruması",
     dwell_default: "Varsayılana dön (3 dk)",
     dwell_min_down: "Bir dakika kısalt", dwell_min_up: "Bir dakika uzat",
@@ -1607,6 +1612,7 @@ const L = {
     band_below: "Включение: ниже цели на", band_above: "Выключение: выше цели на",
     band_down: "Уменьшить на 0,1 °C", band_up: "Увеличить на 0,1 °C",
     slot_below: "Вкл.", slot_above: "Выкл.",
+    slot_note: (on, off) => ["Включение при ", on, ", выключение при ", off],
     dwell: "Защита реле",
     dwell_default: "По умолчанию (3 мин)",
     dwell_min_down: "Уменьшить на минуту", dwell_min_up: "Увеличить на минуту",
@@ -2103,6 +2109,15 @@ function iconButton(name, label, onClick) {
   b.appendChild(icon(name));
   b.addEventListener("click", onClick);
   return b;
+}
+// A text whose parts are text and values in turn; the values set off in bold.
+function setWithValues(el, parts) {
+  el.replaceChildren(...parts.map((p, i) => {
+    if (i % 2 === 0) return p;
+    const b = document.createElement("b");
+    b.textContent = p;
+    return b;
+  }));
 }
 function banner(kind, text, link) {
   const el = document.createElement("div");
@@ -2936,10 +2951,12 @@ function renderSlots() {
     value.className = "temp-value";
     const minus = iconButton("minus", t("temp_down"), () => stepSlot(-tStep()));
     const plus = iconButton("plus", t("temp_up"), () => stepSlot(tStep()));
+    let paintNote = () => {};  // where heating starts and stops, when the slot has its limits
     const paint = () => {
       value.textContent = fmtC(slot[1]);
       minus.disabled = slot[1] <= T_MIN;
       plus.disabled = slot[1] >= T_MAX;
+      paintNote();
     };
     // Updated in place, so quick taps keep landing on the same buttons.
     const stepSlot = (delta) => {
@@ -2983,6 +3000,16 @@ function renderSlots() {
       };
       const lo = limit(2, "slot_below");
       const hi = limit(3, "slot_above");
+      // What they mean in degrees, as the device counts (hundredths, thermostat.c):
+      // heating starts at or below the target minus Başlama and stops at or
+      // above the target plus Durma.
+      const note = document.createElement("p");
+      note.className = "slot-note";
+      note.setAttribute("aria-live", "polite");
+      paintNote = () => {
+        const c = (v) => Math.round(v * 100);
+        setWithValues(note, t("slot_note", fmtC((c(slot[1]) - c(slot[2])) / 100), fmtC((c(slot[1]) + c(slot[3])) / 100)));
+      };
       // Updated in place, as the target is.
       const paintBand = () => {
         lo.val.textContent = nf12.format(slot[2]);
@@ -2991,10 +3018,11 @@ function renderSlots() {
         lo.up.disabled = !canBand(roundBand(slot[2] + B_STEP), slot[3]);
         hi.down.disabled = !canBand(slot[2], roundBand(slot[3] - B_STEP));
         hi.up.disabled = !canBand(slot[2], roundBand(slot[3] + B_STEP));
+        paintNote();
       };
       paintBand();
       band.append(lo.box, hi.box);
-      row.append(band);
+      row.append(band, note);
     }
     return row;
   });
